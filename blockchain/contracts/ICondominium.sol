@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./CondominiumLib.sol";
+import {CondominiumLib as Lib} from "./CondominiumLib.sol";
 
 interface ICondominium {
 
@@ -29,7 +29,7 @@ interface ICondominium {
 
     function openVoting(string memory title) external;
 
-    function vote(string memory title, Options option) external;
+    function vote(string memory title, Lib.Options option) external;
 
-    function closeVoting(string memory title) external
+    function closeVoting(string memory title) external;
 }
