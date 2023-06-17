@@ -163,7 +163,7 @@ contract Condominium is ICondominium {
         for (uint8 i=0; i < votes.length; i++) {
             if (votes[i].option == Lib.Options.YES)
                 approved++;
-            else if (votes[i].option == Lib.Options.YES)
+            else if (votes[i].option == Lib.Options.NO)
                 denied++;
             else
                 abstentions++;
