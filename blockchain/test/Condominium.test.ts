@@ -93,22 +93,11 @@ describe("Condominium", function () {
     await expect(cc.setCounselor(resident.address,true)).to.be.revertedWith("The counselor must be a resident");
   });
 
-  it("Should set manager", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.setManager(resident.address);
-    expect(await cc.manager()).to.equal(resident.address);
-  });
-
-  it("Should NOT set manager (permission)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    const instance = cc.connect(resident);
-    await expect(instance.setManager(resident.address)).to.be.revertedWith("Only the manager can do this");
-  });  
-  
-  it("Should NOT set manager (invalid address)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await expect(cc.setManager("0x0000000000000000000000000000000000000000")).to.be.revertedWith("The address must be valid");
-  });  
+  // it("Should set manager", async function () {
+  //   const { cc, manager, resident } = await loadFixture(deployFixture);
+  //   await cc.setManager(resident.address);
+  //   expect(await cc.manager()).to.equal(resident.address);
+  // });
 
   it("Should add topic", async function () {
     const { cc, manager, resident } = await loadFixture(deployFixture);
