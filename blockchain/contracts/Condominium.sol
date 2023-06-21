@@ -84,7 +84,7 @@ contract Condominium is ICondominium {
         return getTopic(title).createdDate > 0;
     }
 
-    function addTopic(string memory title, string memory description) external onlyResidents {
+    function addTopic(string memory title, string memory description, Lib.Category category) external onlyResidents {
         require(!topicExists(title), "This topic already exists");
         Lib.Topic memory newTopic = Lib.Topic({
             title: title,
@@ -92,7 +92,8 @@ contract Condominium is ICondominium {
             createdDate: block.timestamp,
             startDate: 0,
             endDate: 0,
-            status: Lib.Status.IDLE
+            status: Lib.Status.IDLE,
+            category: category
         });
 
         topics[keccak256(bytes(title))] = newTopic;
@@ -146,9 +147,19 @@ contract Condominium is ICondominium {
         require(topic.createdDate > 0, "The topic does not exists");
         require(topic.status == Lib.Status.VOTING, "Only VOTING topics can be closed");
 
+        uint8 minimumVotes = 5;
         uint8 approved = 0;
         uint8 denied = 0;
         uint8 abstentions = 0;
+
+        if (topic.category == Lib.Category.SPENT) 
+            minimumVotes = 10;
+        else if (topic.category == Lib.Category.CHANGE_MANAGER)
+            minimumVotes = 15;
+        else if (topic.category == Lib.Category.CHANGE_QUOTA)
+            minimumVotes = 20;
+
+        require()
 
         bytes32 topicId = keccak256(bytes(title));
         Lib.Vote[] memory votes = votings[topicId];
@@ -170,7 +181,7 @@ contract Condominium is ICondominium {
         topics[topicId].endDate = block.timestamp;        
     }
 
-    function numberOfVotes(string memory title) external view returns(uint256) {
+    function numberOfVotes(string memory title) public view returns(uint256) {
         bytes32 topicId = keccak256(bytes(title));
         return votings[topicId].length;
     }    
