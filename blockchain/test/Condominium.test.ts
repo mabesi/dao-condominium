@@ -34,10 +34,10 @@ describe("Condominium", function () {
     }
   }
   
-  async function addVotes(contract: Condominium, count: number, accounts: SignerWithAddress[]) {
+  async function addVotes(contract: Condominium, count: number, accounts: SignerWithAddress[], shouldApprove: boolean = true) {
     for (let i = 1; i <= count; i++) {
       const instance = contract.connect(accounts[i -1]);
-      await instance.vote("topic 1", Options.YES);
+      await instance.vote("topic 1", shouldApprove ? Options.YES : Options.NO);
     }
   }
 
@@ -97,11 +97,27 @@ describe("Condominium", function () {
     await expect(cc.removeResident(res.address)).to.be.revertedWith("A counselor cannot be removed");
   });
 
-  it("Should set conselor", async function () {
+  it("Should set conselor (true)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await cc.addResident(res.address, 2102);
     await cc.setCounselor(res.address,true);
+
+    const instance = cc.connect(res);
+    await instance.addResident(accounts[2].address,1302);
+
     expect(await cc.counselors(res.address)).to.equal(true);
+    expect(await cc.isResident(accounts[2].address)).to.equal(true);
+  });
+
+  it("Should set conselor (false)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+
+    await cc.setCounselor(res.address,true);
+    expect(await cc.counselors(res.address)).to.equal(true);
+
+    await cc.setCounselor(res.address,false);
+    expect(await cc.counselors(res.address)).to.equal(false);
   });
 
   it("Should NOT set conselor (permission)", async function () {
@@ -116,16 +132,41 @@ describe("Condominium", function () {
     await expect(cc.setCounselor(res.address,true)).to.be.revertedWith("The counselor must be a resident");
   });
 
-  // it("Should set manager", async function () {
-  //   const { cc, manager, res, accounts } = await loadFixture(deployFixture);
-  //   await cc.setManager(res.address);
-  //   expect(await cc.manager()).to.equal(res.address);
-  // });
+  it("Should change manager", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-  it("Should add topic", async function () {
+    await addResidents(cc, 15, accounts);
+    await cc.addTopic("topic 1", "description 1", Category.CHANGE_MANAGER, 0, res.address);
+    await cc.openVoting("topic 1");
+    await addVotes(cc, 15, accounts);
+    await cc.closeVoting("topic 1");
+    
+    expect(await cc.manager()).to.equal(res.address);
+  });
+
+  it("Should change quota", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    const newQuotaValue = ethers.utils.parseEther("0.02");
+
+    await addResidents(cc, 20, accounts);
+    await cc.addTopic("topic 1", "description 1", Category.CHANGE_QUOTA, newQuotaValue, manager.address);
+    await cc.openVoting("topic 1");
+    await addVotes(cc, 20, accounts);
+    await cc.closeVoting("topic 1");
+    
+    expect(await cc.monthlyQuota()).to.equal(newQuotaValue);
+  });
+
+  it("Should add topic (manager)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
     expect(await cc.topicExists("Topic 01")).to.equal(true);
+  });
+
+  it("Should NOT add topic (amount)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 10, manager.address))
+                .to.be.revertedWith("Wrong category");
   });
 
   it("Should add topic (resident)", async function () {
@@ -188,7 +229,7 @@ describe("Condominium", function () {
     await cc.openVoting("topic 1");
 
     const instance = cc.connect(res);
-    await instance.vote("topic 1", Options.YES);
+    await instance.vote("topic 1", Options.ABSTENTION);
 
     expect(await instance.numberOfVotes("topic 1")).to.equal(1);
   });
@@ -252,16 +293,30 @@ describe("Condominium", function () {
   it("Should close voting", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
+    await addResidents(cc, 6, accounts);
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
+    await cc.openVoting("topic 1");
+
+    await addVotes(cc, 5, accounts, false);
+
+    // vota abstenção to increment test lines
+    const instance = cc.connect(accounts[5]);
+    await instance.vote("topic 1", Options.ABSTENTION);
+
+    await cc.closeVoting("topic 1");
+    const topic = await cc.getTopic("topic 1");
+    expect(topic.status).to.equal(Status.DENIED);
+    expect(await cc.numberOfVotes("topic 1")).to.equal(6);
+  });
+
+  it("Should NOT close voting (minimum votes)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+
     await addResidents(cc, 5, accounts);
     await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 
-    await addVotes(cc, 5, accounts);
-
-    await cc.closeVoting("topic 1");
-    const topic = await cc.getTopic("topic 1");
-
-    expect(topic.status).to.equal(Status.APPROVED);
+    await expect(cc.closeVoting("topic 1")).to.be.revertedWith("You cannot finish a voting without the minimum votes");
   });
 
   it("Should NOT close voting (permission)", async function () {
@@ -295,6 +350,21 @@ describe("Condominium", function () {
 
     const instance = cc.connect(res);
     await expect(instance.openVoting("topic 1")).to.be.revertedWith("Only the manager can do this");
+  });
+
+  it("Should NOT open voting (status)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
+    await cc.openVoting("topic 1");
+    
+    await expect(cc.openVoting("topic 1")).to.be.revertedWith("Only IDLE topics can be opened for voting");
+  });
+
+  it("Should NOT open voting (not exists)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+
+    await expect(cc.openVoting("topic 1")).to.be.revertedWith("The topic does not exists");
   });
 
 });

@@ -63,7 +63,6 @@ contract Condominium is ICondominium {
 
     function removeResident(address resident) external onlyManager {
         require(!counselors[resident], "A counselor cannot be removed");
-        if (counselors[resident]) delete counselors[resident];
         delete residents[resident];
     }
 
@@ -137,7 +136,7 @@ contract Condominium is ICondominium {
         
         Lib.Vote[] memory votes = votings[topicId];
         for (uint8 i = 0; i < votes.length; i++) {
-            if (votes[i].residence == residence) require(false, "A residence should vote only once");
+            require(votes[i].residence != residence, "A residence should vote only once");
         }
 
         Lib.Vote memory newVote = Lib.Vote({

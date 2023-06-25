@@ -58,7 +58,6 @@ contract CondominiumAdapter {
         return implementation.vote(title, option);
     }
 
-    //TODO: mudar
     function closeVoting(string memory title) external {
         return implementation.closeVoting(title);
     }
