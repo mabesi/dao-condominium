@@ -163,7 +163,7 @@ contract Condominium is ICondominium {
         bytes32 topicId = keccak256(bytes(topicToEdit));
 
         if(bytes(description).length > 0) topics[topicId].description = description;
-        if(amount >= 0) topics[topicId].amount = amount;
+        if(amount > 0) topics[topicId].amount = amount;
         if(responsible != address(0)) topics[topicId].responsible = responsible;
     }
 

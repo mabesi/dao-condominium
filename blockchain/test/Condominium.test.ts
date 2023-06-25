@@ -64,6 +64,11 @@ describe("Condominium", function () {
     expect(await cc.isResident(res.address)).to.equal(true);
   });
 
+  it("Should NOT add resident (address)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.addResident("0x0000000000000000000000000000000000000000", 2102)).to.be.revertedWith("Invalid address");
+  });
+
   it("Should NOT add resident (not council or manager)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     const instance = cc.connect(res);
@@ -125,6 +130,11 @@ describe("Condominium", function () {
     await cc.addResident(res.address, 2102);
     const instance = cc.connect(res);
     await expect(instance.setCounselor(res.address,true)).to.be.revertedWith("Only the manager can do this");
+  });
+
+  it("Should NOT set conselor (address)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.setCounselor("0x0000000000000000000000000000000000000000", true)).to.be.revertedWith("Invalid address");
   });
 
   it("Should NOT set conselor (not resident)", async function () {
@@ -190,6 +200,43 @@ describe("Condominium", function () {
     await expect(cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address))
           .to.be.revertedWith("This topic already exists");
   });  
+
+  it("Should edit topic (manager)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.SPENT, 1, manager.address);
+    await cc.editTopic("Topic 01", "new description", 2, manager.address);
+    
+    const topic = await cc.getTopic("Topic 01");
+    expect(topic.description).to.equal("new description");
+  });
+
+  it("Should edit topic (nothing)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.SPENT, 1, manager.address);
+    await cc.editTopic("Topic 01", "", 0, "0x0000000000000000000000000000000000000000");
+    
+    const topic = await cc.getTopic("Topic 01");
+    expect(topic.description).to.equal("Description topic 01.");
+  });
+
+  it("Should NOT edit topic (permission)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.SPENT, 1, manager.address);
+    const instance = cc.connect(res);
+    await expect(instance.editTopic("Topic 01", "new description", 2, manager.address)).to.be.revertedWith("Only the manager can do this");
+  });
+  
+  it("Should NOT edit topic (not exists)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.editTopic("Topic 01", "new description", 2, manager.address)).to.be.revertedWith("This topic does not exists");
+  });
+  
+  it("Should NOT edit topic (status)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.SPENT, 1, manager.address);
+    await cc.openVoting("Topic 01");
+    await expect(cc.editTopic("Topic 01", "new description", 2, manager.address)).to.be.revertedWith("Only IDLE topics can be edited");
+  });
 
   it("Should remove topic", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
