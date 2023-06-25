@@ -10,6 +10,7 @@ import {CondominiumLib as Lib} from "./CondominiumLib.sol";
 contract Condominium is ICondominium {
 
     address public manager; //Ownable Pattern
+    uint public monthlyQuota = 0.01 ether; // Monthly Quota
     mapping(uint16 => bool) public residences; // unidade => true/false
     mapping(address => uint16) public residents; // wallet => unidade (1101 - 2505)
     mapping(address => bool) public counselors; // conselheiro => true/false
@@ -84,8 +85,14 @@ contract Condominium is ICondominium {
         return getTopic(title).createdDate > 0;
     }
 
-    function addTopic(string memory title, string memory description, Lib.Category category) external onlyResidents {
+    function addTopic(string memory title, string memory description, Lib.Category category, uint amount, address responsible) external onlyResidents {
+
         require(!topicExists(title), "This topic already exists");
+        
+        if (amount > 0) {
+            require(category == Lib.Category.CHANGE_QUOTA || category == Lib.Category.SPENT,"Wrong category");
+        }
+
         Lib.Topic memory newTopic = Lib.Topic({
             title: title,
             description: description,
@@ -93,7 +100,9 @@ contract Condominium is ICondominium {
             startDate: 0,
             endDate: 0,
             status: Lib.Status.IDLE,
-            category: category
+            category: category,
+            amount: amount,
+            responsible: responsible != address(0) ? responsible : tx.origin
         });
 
         topics[keccak256(bytes(title))] = newTopic;
@@ -159,7 +168,7 @@ contract Condominium is ICondominium {
         else if (topic.category == Lib.Category.CHANGE_QUOTA)
             minimumVotes = 20;
 
-        require()
+        require(numberOfVotes(title) >= minimumVotes, "You cannot finish a voting without the minimum votes");
 
         bytes32 topicId = keccak256(bytes(title));
         Lib.Vote[] memory votes = votings[topicId];
@@ -173,12 +182,20 @@ contract Condominium is ICondominium {
                 abstentions++;
         }
 
-        if (approved > denied)
-            topics[topicId].status = Lib.Status.APPROVED;
-        else
-            topics[topicId].status = Lib.Status.DENIED;
+        Lib.Status newStatus = approved > denied
+            ? Lib.Status.APPROVED
+            : Lib.Status.DENIED;
 
-        topics[topicId].endDate = block.timestamp;        
+        topics[topicId].status = newStatus; 
+        topics[topicId].endDate = block.timestamp;
+
+        if (newStatus == Lib.Status.APPROVED) {
+            if (topic.category == Lib.Category.CHANGE_QUOTA) {
+                monthlyQuota = topic.amount;
+            } else if (topic.category == Lib.Category.CHANGE_MANAGER) {
+                manager = topic.responsible;
+            }
+        }
     }
 
     function numberOfVotes(string memory title) public view returns(uint256) {

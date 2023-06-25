@@ -1,7 +1,8 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { Condominium } from "../typechain-types";
 
 describe("Condominium", function () {
 
@@ -19,136 +20,160 @@ describe("Condominium", function () {
     DENIED = 3
   }
 
+  enum Category {
+    DECISION = 0,       //0
+    SPENT = 1,          //1
+    CHANGE_QUOTA = 2,   //2
+    CHANGE_MANAGER = 3  //3
+  }
+
+  async function addResidents(contract: Condominium, count: number, accounts: SignerWithAddress[]) {
+    for (let i = 1; i <= count; i++) {
+      const residenceId = (1000 * Math.ceil(i / 25)) + (100 * Math.ceil(i / 5)) + (i - (5 * Math.floor((i - 1) / 5)));
+      await contract.addResident(accounts[i - 1].address, residenceId); // 1 101
+    }
+  }
+  
+  async function addVotes(contract: Condominium, count: number, accounts: SignerWithAddress[]) {
+    for (let i = 1; i <= count; i++) {
+      const instance = contract.connect(accounts[i -1]);
+      await instance.vote("topic 1", Options.YES);
+    }
+  }
+
   async function deployFixture() {
 
-    // Contracts are deployed using the first signer/account by default
-    const [manager, resident] = await ethers.getSigners();
+    const accounts = await ethers.getSigners();
+    const manager = accounts[0];
+    const res = accounts[1];
 
     const Condominium = await ethers.getContractFactory("Condominium");
     const cc = await Condominium.deploy();
 
-    return { cc, manager, resident };
+    return { cc, manager, res, accounts };
   }
 
   it("Should be residence", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     expect(await cc.residenceExists(2102)).to.equal(true);
   });
 
   it("Should add resident", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addResident(resident.address, 2102);
-    expect(await cc.isResident(resident.address)).to.equal(true);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    expect(await cc.isResident(res.address)).to.equal(true);
   });
 
   it("Should NOT add resident (not council or manager)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    const instance = cc.connect(resident);
-    await expect(instance.addResident(resident.address, 2102)).to.be.revertedWith("Only the manager or the council can do this");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    const instance = cc.connect(res);
+    await expect(instance.addResident(res.address, 2102)).to.be.revertedWith("Only the manager or the council can do this");
   });
 
   it("Should NOT add resident (residence does not exists)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await expect(cc.addResident(resident.address, 21020)).to.be.revertedWith("This residence does not exists");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.addResident(res.address, 21020)).to.be.revertedWith("This residence does not exists");
   });
 
   it("Should remove resident", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addResident(resident.address, 2102);
-    expect(await cc.isResident(resident.address)).to.equal(true);
-    await cc.removeResident(resident.address);
-    expect(await cc.isResident(resident.address)).to.equal(false);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    expect(await cc.isResident(res.address)).to.equal(true);
+    await cc.removeResident(res.address);
+    expect(await cc.isResident(res.address)).to.equal(false);
   });
 
   it("Should NOT remove resident (permission)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addResident(resident.address, 2102);
-    const instance = cc.connect(resident);
-    await expect(instance.removeResident(resident.address)).to.be.revertedWith("Only the manager can do this");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    const instance = cc.connect(res);
+    await expect(instance.removeResident(res.address)).to.be.revertedWith("Only the manager can do this");
   });
 
   it("Should NOT remove resident (counselor)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addResident(resident.address, 2102);
-    await cc.setCounselor(resident.address,true);
-    await expect(cc.removeResident(resident.address)).to.be.revertedWith("A counselor cannot be removed");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    await cc.setCounselor(res.address,true);
+    await expect(cc.removeResident(res.address)).to.be.revertedWith("A counselor cannot be removed");
   });
 
   it("Should set conselor", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addResident(resident.address, 2102);
-    await cc.setCounselor(resident.address,true);
-    expect(await cc.counselors(resident.address)).to.equal(true);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    await cc.setCounselor(res.address,true);
+    expect(await cc.counselors(res.address)).to.equal(true);
   });
 
   it("Should NOT set conselor (permission)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addResident(resident.address, 2102);
-    const instance = cc.connect(resident);
-    await expect(instance.setCounselor(resident.address,true)).to.be.revertedWith("Only the manager can do this");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    const instance = cc.connect(res);
+    await expect(instance.setCounselor(res.address,true)).to.be.revertedWith("Only the manager can do this");
   });
 
   it("Should NOT set conselor (not resident)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await expect(cc.setCounselor(resident.address,true)).to.be.revertedWith("The counselor must be a resident");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.setCounselor(res.address,true)).to.be.revertedWith("The counselor must be a resident");
   });
 
   // it("Should set manager", async function () {
-  //   const { cc, manager, resident } = await loadFixture(deployFixture);
-  //   await cc.setManager(resident.address);
-  //   expect(await cc.manager()).to.equal(resident.address);
+  //   const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+  //   await cc.setManager(res.address);
+  //   expect(await cc.manager()).to.equal(res.address);
   // });
 
   it("Should add topic", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addTopic("Topic 01", "Description topic 01.");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
     expect(await cc.topicExists("Topic 01")).to.equal(true);
   });
 
   it("Should add topic (resident)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addResident(resident.address, 2102);
-    const instance = cc.connect(resident);
-    await instance.addTopic("Topic 01", "Description topic 01.");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    const instance = cc.connect(res);
+    await instance.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
     expect(await cc.topicExists("Topic 01")).to.equal(true);
   });
   
   it("Should NOT add topic (permission)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    const instance = cc.connect(resident);
-    await expect(instance.addTopic("Topic 01", "Description topic 01.")).to.be.revertedWith("Only the manager or the residents can do this");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    const instance = cc.connect(res);
+    await expect(instance.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address))
+          .to.be.revertedWith("Only the manager or the residents can do this");
   });
 
   it("Should NOT add topic (duplicated)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addTopic("Topic 01", "Description topic 01.");
-    await expect(cc.addTopic("Topic 01", "Description topic 01.")).to.be.revertedWith("This topic already exists");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
+    await expect(cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address))
+          .to.be.revertedWith("This topic already exists");
   });  
 
   it("Should remove topic", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addTopic("Topic 01", "Description topic 01.");
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
     expect(await cc.topicExists("Topic 01")).to.equal(true);
     await cc.removeTopic("Topic 01");
     expect(await cc.topicExists("Topic 01")).to.equal(false);
   });
 
   it("Should NOT remove topic (permission)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
-    await cc.addTopic("Topic 01", "Description topic 01.");
-    const instance = cc.connect(resident);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
+    const instance = cc.connect(res);
     await expect(instance.removeTopic("Topic 01")).to.be.revertedWith("Only the manager can do this");
   });
 
   it("Should NOT remove topic (it does not exists)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await expect(cc.removeTopic("Topic 01")).to.be.revertedWith("The topic does not exists");
   });
 
   it("Should NOT remove topic (status)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addTopic("topic 1", "description 1");
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
 
     await cc.openVoting("topic 1");
 
@@ -156,85 +181,82 @@ describe("Condominium", function () {
   });
 
   it("Should vote", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(resident.address, 2102);
-    await cc.addTopic("topic 1", "description 1");
+    await cc.addResident(res.address, 2102);
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 
-    const instance = cc.connect(resident);
+    const instance = cc.connect(res);
     await instance.vote("topic 1", Options.YES);
 
     expect(await instance.numberOfVotes("topic 1")).to.equal(1);
   });
 
   it("Should NOT vote (duplicated)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(resident.address, 2102);
-    await cc.addTopic("topic 1", "description 1");
+    await cc.addResident(res.address, 2102);
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 
-    const instance = cc.connect(resident);
+    const instance = cc.connect(res);
     await instance.vote("topic 1", Options.YES);
 
     await expect(instance.vote("topic 1", Options.YES)).to.be.revertedWith("A residence should vote only once");
   });
 
   it("Should NOT vote (status)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(resident.address, 2102);
-    await cc.addTopic("topic 1", "description 1");
+    await cc.addResident(res.address, 2102);
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
 
-    const instance = cc.connect(resident);
+    const instance = cc.connect(res);
 
     await expect(instance.vote("topic 1", Options.YES)).to.be.revertedWith("Only VOTING topics can be voted");
   });
 
   it("Should NOT vote (exists)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(resident.address, 2102);
-    const instance = cc.connect(resident);
+    await cc.addResident(res.address, 2102);
+    const instance = cc.connect(res);
 
     await expect(instance.vote("topic 1", Options.YES)).to.be.revertedWith("The topic does not exists");
   });
 
   it("Should NOT vote (permission)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addTopic("topic 1", "description 1");
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 
-    const instance = cc.connect(resident);
+    const instance = cc.connect(res);
 
     await expect(instance.vote("topic 1", Options.YES)).to.be.revertedWith("Only the manager or the residents can do this");
   });
 
   it("Should NOT vote (empty)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(resident.address, 2102);
-    await cc.addTopic("topic 1", "description 1");
+    await cc.addResident(res.address, 2102);
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 
-    const instance = cc.connect(resident);
+    const instance = cc.connect(res);
 
     await expect(instance.vote("topic 1", Options.EMPTY)).to.be.revertedWith("The option cannot be EMPTY");
   });
 
   it("Should close voting", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(resident.address, 2102);
-    await cc.addTopic("topic 1", "description 1");
+    await addResidents(cc, 5, accounts);
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 
-    await cc.vote("topic 1", Options.YES);
-
-    const instance = cc.connect(resident);
-    await instance.vote("topic 1", Options.YES);
+    await addVotes(cc, 5, accounts);
 
     await cc.closeVoting("topic 1");
     const topic = await cc.getTopic("topic 1");
@@ -243,35 +265,35 @@ describe("Condominium", function () {
   });
 
   it("Should NOT close voting (permission)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(resident.address, 2102);
-    await cc.addTopic("topic 1", "description 1");
+    await cc.addResident(res.address, 2102);
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 
-    const instance = cc.connect(resident);
+    const instance = cc.connect(res);
     await expect(instance.closeVoting("topic 1")).to.be.revertedWith("Only the manager can do this");
   });
 
   it("Should NOT close voting (exists)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await expect(cc.closeVoting("topic 1")).to.be.revertedWith("The topic does not exists");
   });
 
   it("Should NOT close voting (status)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addTopic("topic 1", "description 1");
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await expect(cc.closeVoting("topic 1")).to.be.revertedWith("Only VOTING topics can be closed");
   });
 
   it("Should NOT open voting (permission)", async function () {
-    const { cc, manager, resident } = await loadFixture(deployFixture);
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(resident.address, 2102);
-    await cc.addTopic("topic 1", "description 1");
+    await cc.addResident(res.address, 2102);
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
 
-    const instance = cc.connect(resident);
+    const instance = cc.connect(res);
     await expect(instance.openVoting("topic 1")).to.be.revertedWith("Only the manager can do this");
   });
 

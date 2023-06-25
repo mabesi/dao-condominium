@@ -12,7 +12,7 @@ interface ICondominium {
     function setCounselor(address resident, bool isEntering) external;
 
     //TODO: mudar
-    function addTopic(string memory title, string memory description, Lib.Category category) external;
+    function addTopic(string memory title, string memory description, Lib.Category category, uint amount, address responsible) external;
 
     //TODO: editar tópicos
 

@@ -1,7 +1,8 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { CondominiumAdapter } from "../typechain-types";
 
 describe("CondominiumAdapter", function () {
 
@@ -17,6 +18,27 @@ describe("CondominiumAdapter", function () {
     VOTING = 1,
     APPROVED = 2,
     DENIED = 3
+  }
+
+  enum Category {
+    DECISION = 0,       //0
+    SPENT = 1,          //1
+    CHANGE_QUOTA = 2,   //2
+    CHANGE_MANAGER = 3  //3
+  }
+
+  async function addResidents(adapter: CondominiumAdapter, count: number, accounts: SignerWithAddress[]) {
+    for (let i = 1; i <= count; i++) {
+      const residenceId = (1000 * Math.ceil(i / 25)) + (100 * Math.ceil(i / 5)) + (i - (5 * Math.floor((i - 1) / 5)));
+      await adapter.addResident(accounts[i - 1].address, residenceId); // 1 101
+    }
+  }
+  
+  async function addVotes(adapter: CondominiumAdapter, count: number, accounts: SignerWithAddress[]) {
+    for (let i = 1; i <= count; i++) {
+      const instance = adapter.connect(accounts[i -1]);
+      await instance.vote("topic 1", Options.YES);
+    }
   }
 
   async function deployAdapterFixture() {
@@ -99,7 +121,7 @@ describe("CondominiumAdapter", function () {
     const { cc } = await loadFixture(deployImplementationFixture);
 
     await ca.upgrade(cc.address);
-    await ca.addTopic("topic 1","description 1");
+    await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
 
     expect(await cc.topicExists("topic 1")).to.equal(true);
   });
@@ -110,7 +132,7 @@ describe("CondominiumAdapter", function () {
 
     await ca.upgrade(cc.address);
 
-    await ca.addTopic("topic 1","description 1");
+    await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
     expect(await cc.topicExists("topic 1")).to.equal(true);
 
     await ca.removeTopic("topic 1");
@@ -123,7 +145,7 @@ describe("CondominiumAdapter", function () {
 
     await ca.upgrade(cc.address);
     
-    await ca.addTopic("topic 1","description 1");
+    await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
     await ca.openVoting("topic 1");
     const topic = await cc.getTopic("topic 1");
 
@@ -137,7 +159,7 @@ describe("CondominiumAdapter", function () {
     await ca.upgrade(cc.address);
 
     await ca.addResident(res.address, 1301);
-    await ca.addTopic("topic 1","description 1");
+    await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
     await ca.openVoting("topic 1");
 
     const instance = ca.connect(res);
@@ -152,12 +174,12 @@ describe("CondominiumAdapter", function () {
 
     await ca.upgrade(cc.address);
 
-    await ca.addResident(res.address, 1301);
-    await ca.addTopic("topic 1","description 1");
+    await addResidents(ca, 5, accounts);
+
+    await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
     await ca.openVoting("topic 1");
 
-    const instance = ca.connect(res);
-    await instance.vote("topic 1", Options.YES);
+    await addVotes(ca, 5, accounts);
 
     await ca.closeVoting("topic 1");
 
