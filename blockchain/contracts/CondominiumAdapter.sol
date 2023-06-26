@@ -52,7 +52,9 @@ contract CondominiumAdapter {
         return implementation.removeTopic(title);
     }
 
-    //TODO: pay quota
+    function payQuota(uint16 residenceId) external payable upgraded {
+        return implementation.payQuota{value: msg.value}(residenceId);
+    }
 
     //TODO: transfer
 

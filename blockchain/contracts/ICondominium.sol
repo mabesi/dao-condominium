@@ -17,9 +17,7 @@ interface ICondominium {
 
     function removeTopic(string memory title) external;
 
-    //TODO: set quota
-
-    //TODO: pay quota
+    function payQuota(uint16 residenceId) external payable;
 
     //TODO: transfer
 
