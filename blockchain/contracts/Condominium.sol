@@ -48,7 +48,7 @@ contract Condominium is ICondominium {
 
     modifier onlyResidents() {
         require(tx.origin == manager || isResident(tx.origin), "Only the manager or the residents can do this");
-        require(tx.origin == manager || block.timestamp < payments[residents[tx.origin]] + (30 * 24 * 60 * 60), "The resident must be defaulter");
+        require(tx.origin == manager || block.timestamp < payments[residents[tx.origin]] + (30 * 24 * 60 * 60), "The resident must not be defaulter");
         _;
     }
 

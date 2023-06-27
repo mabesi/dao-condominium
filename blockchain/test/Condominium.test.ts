@@ -297,6 +297,17 @@ describe("Condominium", function () {
     await expect(instance.vote("topic 1", Options.YES)).to.be.revertedWith("A residence should vote only once");
   });
 
+  it("Should NOT vote (defaulter)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+
+    await cc.addResident(res.address, 2102);
+    await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
+    await cc.openVoting("topic 1");
+
+    const instance = cc.connect(res);
+    await expect(instance.vote("topic 1", Options.YES)).to.be.revertedWith("The resident must not be defaulter");
+  });
+
   it("Should NOT vote (status)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
@@ -404,17 +415,33 @@ describe("Condominium", function () {
 
   it("Should NOT open voting (status)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
-
     await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
-    
     await expect(cc.openVoting("topic 1")).to.be.revertedWith("Only IDLE topics can be opened for voting");
   });
 
   it("Should NOT open voting (not exists)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
-
     await expect(cc.openVoting("topic 1")).to.be.revertedWith("The topic does not exists");
+  });
+
+  it("Should NOT pay quota (residence does not exists)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.payQuota(1, {value: ethers.utils.parseEther("0.01")}))
+              .to.be.revertedWith("The residence does not exists");
+  });
+
+  it("Should NOT pay quota (wrong value)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.payQuota(1102, {value: ethers.utils.parseEther("0.001")}))
+              .to.be.revertedWith("Wrong value");
+  });
+
+  it("Should NOT pay quota (duplicated)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.payQuota(1102, {value: ethers.utils.parseEther("0.01")})
+    await expect(cc.payQuota(1102, {value: ethers.utils.parseEther("0.01")}))
+              .to.be.revertedWith("You cannot pay twice a month");
   });
 
 });

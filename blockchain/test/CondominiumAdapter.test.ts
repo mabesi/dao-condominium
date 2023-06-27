@@ -83,6 +83,11 @@ describe("CondominiumAdapter", function () {
 
     await expect(instance.upgrade(cc.address)).to.be.revertedWith("You do not have permission");
   });
+
+  it("Should NOT upgrade (address)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    await expect(ca.upgrade("0x0000000000000000000000000000000000000000")).to.be.revertedWith("Invalid address");
+  });
   
   it("Should add resident", async function () {
     const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
@@ -249,6 +254,11 @@ describe("CondominiumAdapter", function () {
   it("Should NOT close voting (upgrade)", async function () {
     const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
     await expect(ca.closeVoting("topic 1")).to.be.revertedWith("You must upgrade first");
+  });
+
+  it("Should NOT pay quota (upgrade)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    await expect(ca.payQuota(1102, {value: ethers.utils.parseEther("0.01")})).to.be.revertedWith("You must upgrade first");
   });
 
 });
