@@ -31,6 +31,9 @@ describe("Condominium", function () {
     for (let i = 1; i <= count; i++) {
       const residenceId = (1000 * Math.ceil(i / 25)) + (100 * Math.ceil(i / 5)) + (i - (5 * Math.floor((i - 1) / 5)));
       await contract.addResident(accounts[i - 1].address, residenceId); // 1 101
+
+      const instance = contract.connect(accounts[i-1]);
+      await instance.payQuota(residenceId, {value: ethers.utils.parseEther("0.01")});      
     }
   }
   
@@ -181,7 +184,7 @@ describe("Condominium", function () {
 
   it("Should add topic (resident)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
-    await cc.addResident(res.address, 2102);
+    await addResidents(cc, 1, [res]);
     const instance = cc.connect(res);
     await instance.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
     expect(await cc.topicExists("Topic 01")).to.equal(true);
@@ -271,7 +274,7 @@ describe("Condominium", function () {
   it("Should vote", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(res.address, 2102);
+    await addResidents(cc, 1, [res]);
     await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 
@@ -284,7 +287,7 @@ describe("Condominium", function () {
   it("Should NOT vote (duplicated)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(res.address, 2102);
+    await addResidents(cc, 1, [res]);
     await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 
@@ -297,7 +300,7 @@ describe("Condominium", function () {
   it("Should NOT vote (status)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(res.address, 2102);
+    await addResidents(cc, 1, [res]);
     await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
 
     const instance = cc.connect(res);
@@ -308,7 +311,7 @@ describe("Condominium", function () {
   it("Should NOT vote (exists)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(res.address, 2102);
+    await addResidents(cc, 1, [res]);
     const instance = cc.connect(res);
 
     await expect(instance.vote("topic 1", Options.YES)).to.be.revertedWith("The topic does not exists");
@@ -328,7 +331,7 @@ describe("Condominium", function () {
   it("Should NOT vote (empty)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
-    await cc.addResident(res.address, 2102);
+    await addResidents(cc, 1, [res]);
     await cc.addTopic("topic 1", "description 1", Category.DECISION, 0, manager.address);
     await cc.openVoting("topic 1");
 

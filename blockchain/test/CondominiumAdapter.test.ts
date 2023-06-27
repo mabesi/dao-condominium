@@ -31,6 +31,9 @@ describe("CondominiumAdapter", function () {
     for (let i = 1; i <= count; i++) {
       const residenceId = (1000 * Math.ceil(i / 25)) + (100 * Math.ceil(i / 5)) + (i - (5 * Math.floor((i - 1) / 5)));
       await adapter.addResident(accounts[i - 1].address, residenceId); // 1 101
+
+      const instance = adapter.connect(accounts[i-1]);
+      await instance.payQuota(residenceId, {value: ethers.utils.parseEther("0.01")});
     }
   }
   
@@ -208,7 +211,7 @@ describe("CondominiumAdapter", function () {
 
     await ca.upgrade(cc.address);
 
-    await ca.addResident(res.address, 1301);
+    await addResidents(ca, 1, [res]);
     await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
     await ca.openVoting("topic 1");
 
