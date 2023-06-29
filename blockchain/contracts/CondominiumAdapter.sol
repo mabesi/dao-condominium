@@ -47,8 +47,6 @@ contract CondominiumAdapter {
         return implementation.editTopic(topicToEdit, description, amount, responsible);
     }
 
-    //TODO: editar tópicos
-
     function removeTopic(string memory title) external upgraded {
         return implementation.removeTopic(title);
     }
@@ -56,8 +54,6 @@ contract CondominiumAdapter {
     function payQuota(uint16 residenceId) external payable upgraded {
         return implementation.payQuota{value: msg.value}(residenceId);
     }
-
-    //TODO: transfer
 
     function openVoting(string memory title) external upgraded {
         return implementation.openVoting(title);
@@ -71,4 +67,8 @@ contract CondominiumAdapter {
         return implementation.closeVoting(title);
     }
 
+    function transfer(string memory topicTitle, uint amount) external upgraded {
+        return implementation.transfer(topicTitle, amount);
+    }
+    
 }

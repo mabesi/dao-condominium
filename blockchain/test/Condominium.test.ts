@@ -3,6 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Condominium } from "../typechain-types";
+import { isCallTrace } from "hardhat/internal/hardhat-network/stack-traces/message-trace";
 
 describe("Condominium", function () {
 
@@ -17,14 +18,15 @@ describe("Condominium", function () {
     IDLE = 0,
     VOTING = 1,
     APPROVED = 2,
-    DENIED = 3
+    DENIED = 3,
+    SPENT = 4
   }
 
   enum Category {
-    DECISION = 0,       //0
-    SPENT = 1,          //1
-    CHANGE_QUOTA = 2,   //2
-    CHANGE_MANAGER = 3  //3
+    DECISION = 0,
+    SPENT = 1,
+    CHANGE_QUOTA = 2,
+    CHANGE_MANAGER = 3
   }
 
   async function addResidents(contract: Condominium, count: number, accounts: SignerWithAddress[]) {
@@ -442,6 +444,35 @@ describe("Condominium", function () {
     await cc.payQuota(1102, {value: ethers.utils.parseEther("0.01")})
     await expect(cc.payQuota(1102, {value: ethers.utils.parseEther("0.01")}))
               .to.be.revertedWith("You cannot pay twice a month");
+  });
+
+  it("Should NOT transfer (manager)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    const instance = cc.connect(res);
+    await expect(instance.transfer("topic 1", 100)).to.be.revertedWith("Only the manager can do this");
+  });
+
+  it("Should NOT transfer (funds)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.transfer("topic 1", 100)).to.be.revertedWith("Insufficient funds");
+  });
+
+  it("Should NOT transfer (topic)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await addResidents(cc, 1, accounts);
+    await expect(cc.transfer("topic 1", 100)).to.be.revertedWith("Only APPROVED SPENT topics can be used for transfers");
+  });
+
+  it("Should NOT transfer (amount)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+
+    await addResidents(cc, 10, accounts);
+    await cc.addTopic("topic 1","description 1", Category.SPENT, 100, res.address);
+    await cc.openVoting("topic 1");
+    await addVotes(cc, 10, accounts);
+    await cc.closeVoting("topic 1");
+
+    await expect(cc.transfer("topic 1", 101)).to.be.revertedWith("The amount must be less or equal the APPROVED topic");
   });
 
 });

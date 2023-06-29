@@ -17,7 +17,8 @@ describe("CondominiumAdapter", function () {
     IDLE = 0,
     VOTING = 1,
     APPROVED = 2,
-    DENIED = 3
+    DENIED = 3,
+    SPENT = 4
   }
 
   enum Category {
@@ -259,6 +260,37 @@ describe("CondominiumAdapter", function () {
   it("Should NOT pay quota (upgrade)", async function () {
     const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
     await expect(ca.payQuota(1102, {value: ethers.utils.parseEther("0.01")})).to.be.revertedWith("You must upgrade first");
+  });
+
+  it("Should transfer", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    const { cc } = await loadFixture(deployImplementationFixture);
+
+    await ca.upgrade(cc.address);
+    await addResidents(ca, 10, accounts);
+    await ca.addTopic("topic 1","description 1", Category.SPENT, 100, res.address);
+    await ca.openVoting("topic 1");
+    await addVotes(ca, 10, accounts);
+    await ca.closeVoting("topic 1");
+
+    const balanceBefore = await ca.provider.getBalance(cc.address);
+    const balanceWorkerBefore = await ca.provider.getBalance(res.address);
+
+    await ca.transfer("topic 1", 100);
+
+    const balanceAfter = await ca.provider.getBalance(cc.address);
+    const balanceWorkerAfter = await ca.provider.getBalance(res.address);
+    
+    const topic = await cc.getTopic("topic 1");
+
+    expect(balanceAfter).to.equal(balanceBefore.sub(100));
+    expect(balanceWorkerAfter).to.equal(balanceWorkerBefore.add(100));
+    expect(topic.status).to.equal(Status.SPENT);
+  });
+
+  it("Should NOT transfer (upgrade)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    await expect(ca.transfer("topic 1", 100)).to.be.revertedWith("You must upgrade first");
   });
 
 });
