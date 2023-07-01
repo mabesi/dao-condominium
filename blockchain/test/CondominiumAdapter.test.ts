@@ -18,7 +18,8 @@ describe("CondominiumAdapter", function () {
     VOTING = 1,
     APPROVED = 2,
     DENIED = 3,
-    SPENT = 4
+    DELETED = 4,
+    SPENT = 5
   }
 
   enum Category {
@@ -38,10 +39,10 @@ describe("CondominiumAdapter", function () {
     }
   }
   
-  async function addVotes(adapter: CondominiumAdapter, count: number, accounts: SignerWithAddress[]) {
+  async function addVotes(adapter: CondominiumAdapter, count: number, accounts: SignerWithAddress[], deny: boolean = false) {
     for (let i = 1; i <= count; i++) {
       const instance = adapter.connect(accounts[i -1]);
-      await instance.vote("topic 1", Options.YES);
+      await instance.vote("topic 1", deny ? Options.NO : Options.YES);
     }
   }
 
@@ -232,7 +233,7 @@ describe("CondominiumAdapter", function () {
     await expect(ca.vote("topic 1", Options.YES)).to.be.revertedWith("You must upgrade first");
   });
 
-  it("Should close voting", async function () {
+  it("Should close voting (decision approved)", async function () {
     const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
     const { cc } = await loadFixture(deployImplementationFixture);
 
@@ -245,11 +246,63 @@ describe("CondominiumAdapter", function () {
 
     await addVotes(ca, 5, accounts);
 
-    await ca.closeVoting("topic 1");
+    await expect(ca.closeVoting("topic 1")).to.emit(ca, "TopicChanged");
 
     const topic = await cc.getTopic("topic 1");
-
     expect(topic.status).to.equal(Status.APPROVED);
+  });
+
+  it("Should close voting (decision denied)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    const { cc } = await loadFixture(deployImplementationFixture);
+
+    await ca.upgrade(cc.address);
+
+    await addResidents(ca, 5, accounts);
+
+    await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
+    await ca.openVoting("topic 1");
+
+    await addVotes(ca, 5, accounts, true);
+
+    await expect(ca.closeVoting("topic 1")).to.emit(ca, "TopicChanged");
+
+    const topic = await cc.getTopic("topic 1");
+    expect(topic.status).to.equal(Status.DENIED);
+  });
+
+ it("Should close voting (change manager)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    const { cc } = await loadFixture(deployImplementationFixture);
+
+    await ca.upgrade(cc.address);
+
+    await addResidents(ca, 15, accounts);
+
+    await ca.addTopic("topic 1","description 1", Category.CHANGE_MANAGER, 0, res.address);
+    await ca.openVoting("topic 1");
+
+    await addVotes(ca, 15, accounts);
+
+    await expect(ca.closeVoting("topic 1")).to.emit(ca,"ManagerChanged").withArgs(res.address);
+    //expect(await cc.getManager()).to.equal(res.address);
+  });
+
+ it("Should close voting (change quota)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    const { cc } = await loadFixture(deployImplementationFixture);
+
+    await ca.upgrade(cc.address);
+
+    await addResidents(ca, 20, accounts);
+
+    await ca.addTopic("topic 1","description 1", Category.CHANGE_QUOTA, 100, manager.address);
+    await ca.openVoting("topic 1");
+
+    await addVotes(ca, 20, accounts);
+
+    await expect(ca.closeVoting("topic 1")).to.emit(ca,"QuotaChanged").withArgs(100);
+    //expect(await cc.getManager()).to.equal(res.address);
   });
 
   it("Should NOT close voting (upgrade)", async function () {
