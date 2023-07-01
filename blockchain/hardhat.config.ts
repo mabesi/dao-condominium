@@ -11,8 +11,8 @@ const config: HardhatUserConfig = {
   solidity: "0.8.17",
   networks: {
     bsctest: {
-      url: process.env.NODE_URL,
-      chainId: parseInt(`${process.env.CHAIN_ID}`),
+      url: process.env.BSC_NODE_URL,
+      chainId: parseInt(`${process.env.BSC_CHAIN_ID}`),
       accounts: {
         mnemonic: process.env.BSC_SECRET
       }
