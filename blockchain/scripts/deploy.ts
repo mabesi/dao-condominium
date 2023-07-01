@@ -1,8 +1,5 @@
 import { ethers } from "hardhat";
 
-// Contratos gerados:
-// 1: 0xa018Fc9DecA4A08661Cb214f666538ED988fdfB3
-
 async function main() {
 
   const CondominiumLib = await ethers.getContractFactory("CondominiumLib");

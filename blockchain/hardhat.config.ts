@@ -15,7 +15,8 @@ const config: HardhatUserConfig = {
       chainId: parseInt(`${process.env.BSC_CHAIN_ID}`),
       accounts: {
         mnemonic: process.env.BSC_SECRET
-      }
+      },
+      gasPrice: 35000000000
     }
   },
   etherscan: {
