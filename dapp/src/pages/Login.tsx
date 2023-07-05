@@ -1,6 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { doLogin } from '../services/Web3Service';
 
 function Login() {
+
+  const navigate = useNavigate();
+  const [message, setMessage] = useState<String>("");
+
+  function btnLoginClick() {
+    doLogin()
+      .then(result => navigate("/topics"))
+      .catch(err => setMessage(err.message));
+  }
+
   return (
     <main className="main-content  mt-0">
       <div className="page-header align-items-start min-vh-100" style={{backgroundImage: "url('https://www.kayak.com.br/rimg/himg/4c/24/54/expediav2-126168-fc35dd-698605.jpg')"}} >
@@ -21,11 +33,14 @@ function Login() {
                       <img src="/logo192.png" alt="Condominium logo" />
                     </div>
                     <div className="text-center">
-                      <button type="button" className="btn bg-gradient-primary w-100 my-4 mb-2">
+                      <button type="button" className="btn bg-gradient-primary w-100 my-4 mb-2" onClick={btnLoginClick} >
                         <img className="me-2" src="/assets/metamask.svg" alt="Metamask logo" width="48" />
                         Sign in with Metamask
                         </button>
                     </div>
+                    <p className="mt-4 text-sm text-center text-danger">
+                      {message}
+                    </p>
                     <p className="mt-4 text-sm text-center">
                       Don't have an account? Ask to the 
                       <a href="mailto:contato@condominio.com" className="text-primary text-gradient font-weight-bold ms-1">manager</a>
