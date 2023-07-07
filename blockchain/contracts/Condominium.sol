@@ -12,12 +12,16 @@ contract Condominium is ICondominium {
     address public manager; //Ownable Pattern
     uint public monthlyQuota = 0.01 ether; // Monthly Quota
     mapping(uint16 => bool) public residences; // unidade => true/false
-    mapping(address => uint16) public residents; // wallet => unidade (1101 - 2505)
-    mapping(address => bool) public counselors; // conselheiro => true/false
+    Lib.Resident[] public residents;
+    mapping(address => uint) private _residentIndex; // wallet => array index
 
-    mapping(uint16 => uint) public payments; // unidade => último pagamento (timestamp)
+    address[] public counselors; // conselheiro => true/false
 
-    mapping(bytes32 => Lib.Topic) public topics; // hash do título => tópico
+    mapping(uint16 => uint) public nextPayment; // unidade => próximo pagamento (timestamp)
+
+    Lib.Topic[] public topics;
+
+    mapping(bytes32 => uint) private _topicIndex; // hash do título => array index
     mapping(bytes32 => Lib.Vote[]) public votings; // hash do título => votos
 
     constructor() {
@@ -42,13 +46,20 @@ contract Condominium is ICondominium {
     }
 
     modifier onlyCouncil() {
-        require(tx.origin == manager || counselors[tx.origin], "Only the manager or the council can do this");
+        require(tx.origin == manager || _isCounselor(tx.origin), "Only the manager or the council can do this");
         _;
     }
 
     modifier onlyResidents() {
-        require(tx.origin == manager || isResident(tx.origin), "Only the manager or the residents can do this");
-        require(tx.origin == manager || block.timestamp < payments[residents[tx.origin]] + (30 * 24 * 60 * 60), "The resident must not be defaulter");
+
+        if (tx.origin != manager) {
+
+            require(isResident(tx.origin), "Only the manager or the residents can do this");
+
+            Lib.Resident memory resident = _getResident(tx.origin);
+
+            require(block.timestamp <= nextPayment[resident.residence], "The resident must not be defaulter");
+        }
         _;
     }
 
@@ -62,17 +73,71 @@ contract Condominium is ICondominium {
     }
 
     function isResident(address resident) public view returns (bool) {
-        return residents[resident] > 0;
+        return _getResident(resident).residence > 0;
+    }
+
+    function _getResident(address resident) private view returns (Lib.Resident memory) {
+        uint index = _residentIndex[resident];
+        if (index < residents.length) {
+            Lib.Resident memory result = residents[index];
+            if (result.wallet == resident) return result;
+        }
+        return Lib.Resident({
+            wallet: address(0),
+            residence: 0,
+            isCounselor: false,
+            isManager: false
+        });
+    }
+
+    function getResident(address resident) external view returns (Lib.Resident memory) {
+        return _getResident(resident);
+    }
+
+    function getResidents(uint page, uint pageSize) external view returns (Lib.ResidentPage memory) {
+        Lib.Resident[] memory result = new Lib.Resident[pageSize];
+        uint skip = ((page - 1) * pageSize);
+        uint index = 0;
+        for (
+            uint i = skip;
+            i < (skip + pageSize) && i < residents.length;
+            i++
+        ) {
+            result[index++] = residents[i];
+        }
+        return Lib.ResidentPage({
+            residents: result,
+            total: residents.length
+        });
     }
 
     function addResident(address resident, uint16 residenceId) external onlyCouncil validAddress(resident) {
         require(residences[residenceId], "This residence does not exists");
-        residents[resident] = residenceId;
+        residents.push(Lib.Resident({
+            wallet: resident,
+            residence: residenceId,
+            isCounselor: false,
+            isManager: resident == manager
+        }));
+        _residentIndex[resident] = residents.length - 1;
     }
 
     function removeResident(address resident) external onlyManager {
-        require(!counselors[resident], "A counselor cannot be removed");
-        delete residents[resident];
+        require(!_isCounselor(resident), "A counselor cannot be removed");
+        uint index = _residentIndex[resident];
+        if (index != residents.length - 1) {
+            Lib.Resident memory latest = residents[residents.length - 1];
+            residents[index] = latest;
+        }
+        residents.pop();
+        delete _residentIndex[resident];
+    }
+
+    function _isCounselor(address resident) private view returns (bool) {
+        for (uint i=0; i < counselors.length; i++) {
+            if (counselors[i] == resident) return true;
+        }
+        return false;
     }
 
     function setCounselor(address resident, bool isEntering) external onlyManager validAddress(resident) {
@@ -290,5 +355,12 @@ contract Condominium is ICondominium {
         return monthlyQuota;
     }
 
+    function getTopic(string memory title) external view returns (Lib.Topic memory) {
+        
+    }
+
+    function getTopics(uint page, uint pageSize) external view returns (Lib.TopicPage memory) {
+        
+    } 
 
 } // End Contract
