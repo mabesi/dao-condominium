@@ -30,18 +30,24 @@ describe("CondominiumAdapter", function () {
   }
 
   async function addResidents(adapter: CondominiumAdapter, count: number, accounts: SignerWithAddress[]) {
+    // Skip adicionado para cobrir os testes quando o manager não é resident
+    const skip = count < 20 ? 0 : 1;
+
     for (let i = 1; i <= count; i++) {
       const residenceId = (1000 * Math.ceil(i / 25)) + (100 * Math.ceil(i / 5)) + (i - (5 * Math.floor((i - 1) / 5)));
-      await adapter.addResident(accounts[i - 1].address, residenceId); // 1 101
+      await adapter.addResident(accounts[i - skip].address, residenceId); // 1 101
 
-      const instance = adapter.connect(accounts[i-1]);
+      const instance = adapter.connect(accounts[i - skip]);
       await instance.payQuota(residenceId, {value: ethers.utils.parseEther("0.01")});
     }
   }
   
   async function addVotes(adapter: CondominiumAdapter, count: number, accounts: SignerWithAddress[], deny: boolean = false) {
+    // Skip adicionado para cobrir os testes quando o manager não é resident
+    const skip = count < 20 ? 0 : 1;
+    
     for (let i = 1; i <= count; i++) {
-      const instance = adapter.connect(accounts[i -1]);
+      const instance = adapter.connect(accounts[i - skip]);
       await instance.vote("topic 1", deny ? Options.NO : Options.YES);
     }
   }
@@ -90,13 +96,63 @@ describe("CondominiumAdapter", function () {
     const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
     await expect(ca.upgrade("0x0000000000000000000000000000000000000000")).to.be.revertedWith("Invalid address");
   });
+
+  it("Should get manager", async function () {
+      const { ca, manager, res } = await loadFixture(deployAdapterFixture);
+      const { cc } = await loadFixture(deployImplementationFixture);
+      
+      await ca.upgrade(cc.address);
+    
+      const managerAddress = await ca.getManager();
+      expect(managerAddress).to.equal(manager.address);
+  });
+
+  it("Should NOT get manager (upgrade)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    await expect(ca.getManager()).to.be.revertedWith("You must upgrade first");
+  });
+
+  it("Should get quota", async function () {
+      const { ca, manager, res } = await loadFixture(deployAdapterFixture);
+      const { cc } = await loadFixture(deployImplementationFixture);
+      
+      await ca.upgrade(cc.address);
+    
+      const quota = await ca.getQuota();
+      expect(quota).to.equal(ethers.utils.parseEther("0.01"));
+  });
+
+  it("Should NOT get quota (upgrade)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    await expect(ca.getQuota()).to.be.revertedWith("You must upgrade first");
+  });
+
+  it("Should get residents", async function () {
+      const { ca, manager, res } = await loadFixture(deployAdapterFixture);
+      const { cc } = await loadFixture(deployImplementationFixture);
+      
+      await ca.upgrade(cc.address);
+      await ca.addResident(res.address, 1301);
+    
+      const result = await ca.getResidents(1, 10);
+      expect(result.residents[0].wallet).to.equal(res.address);
+  });
+
+  it("Should NOT get residents (upgrade)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    await expect(ca.getResidents(1, 10)).to.be.revertedWith("You must upgrade first");
+  });
+
+  it("Should NOT get resident (upgrade)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    await expect(ca.getResident(res.address)).to.be.revertedWith("You must upgrade first");
+  });
   
   it("Should add resident", async function () {
     const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
     const { cc } = await loadFixture(deployImplementationFixture);
 
     await ca.upgrade(cc.address);
-    
     await ca.addResident(res.address, 1301);
 
     expect(await cc.isResident(res.address)).to.equal(true);
@@ -133,12 +189,57 @@ describe("CondominiumAdapter", function () {
     await ca.addResident(res.address, 1301);
     await ca.setCounselor(res.address, true);
 
-    expect(await cc.counselors(res.address)).to.equal(true);
+    const resident = await ca.getResident(res.address);
+
+    expect(resident.isCounselor).to.equal(true);
   });
 
   it("Should NOT set counselor (upgrade)", async function () {
     const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
     await expect(ca.setCounselor(res.address, true)).to.be.revertedWith("You must upgrade first");
+  });
+
+  it("Should get topic", async function () {
+    const { ca, manager, res } = await loadFixture(deployAdapterFixture);
+    const { cc } = await loadFixture(deployImplementationFixture);
+    
+    await ca.upgrade(cc.address);
+    await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
+  
+    const topic = await ca.getTopic("topic 1");
+    expect(topic.title).to.equal("topic 1");
+  });
+
+  it("Should NOT get topic (upgrade)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    await expect(ca.getTopic("topic 1")).to.be.revertedWith("You must upgrade first");
+  });  
+
+  it("Should get topics", async function () {
+    const { ca, manager, res } = await loadFixture(deployAdapterFixture);
+    const { cc } = await loadFixture(deployImplementationFixture);
+    
+    await ca.upgrade(cc.address);
+    await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
+  
+    const result = await ca.getTopics(1, 10);
+    expect(result.topics[0].title).to.equal("topic 1");
+  });
+
+  it("Should get topics (empty)", async function () {
+    const { ca, manager, res } = await loadFixture(deployAdapterFixture);
+    const { cc } = await loadFixture(deployImplementationFixture);
+    
+    await ca.upgrade(cc.address);
+  
+    const result = await ca.getTopics(1, 10);
+    // Retorna 10 elementos vazios
+    expect(result.topics.length).to.equal(10);
+  });
+
+  it("Should NOT get topics (upgrade)", async function () {
+    const { ca, manager, res } = await loadFixture(deployAdapterFixture);
+    await expect(ca.getTopics(1, 10)).to.be.revertedWith("You must upgrade first");
   });
 
   it("Should add topic", async function () {
@@ -212,13 +313,33 @@ describe("CondominiumAdapter", function () {
     await expect(ca.openVoting("topic 1")).to.be.revertedWith("You must upgrade first");
   });
 
+  it("Should get votes", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    const { cc } = await loadFixture(deployImplementationFixture);
+    
+    await ca.upgrade(cc.address);
+    await addResidents(ca, 1, accounts);
+    await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
+    await ca.openVoting("topic 1");
+    const instance = ca.connect(res);
+    await instance.vote("topic 1", Options.YES);
+    const votes = await ca.getVotes("topic 1");
+
+    expect(votes.length).to.equal(await cc.numberOfVotes("topic 1"));
+  });
+
+  it("Should NOT get votes (upgrade)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    await expect(ca.getVotes("topic 1")).to.be.revertedWith("You must upgrade first");
+  });  
+
   it("Should vote", async function () {
     const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
     const { cc } = await loadFixture(deployImplementationFixture);
 
     await ca.upgrade(cc.address);
 
-    await addResidents(ca, 1, [res]);
+    await addResidents(ca, 1, accounts);
     await ca.addTopic("topic 1","description 1", Category.DECISION, 0, manager.address);
     await ca.openVoting("topic 1");
 
@@ -271,7 +392,7 @@ describe("CondominiumAdapter", function () {
     expect(topic.status).to.equal(Status.DENIED);
   });
 
- it("Should close voting (change manager)", async function () {
+ it("Should close voting (change manager, resident)", async function () {
     const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
     const { cc } = await loadFixture(deployImplementationFixture);
 
@@ -285,6 +406,25 @@ describe("CondominiumAdapter", function () {
     await addVotes(ca, 15, accounts);
 
     await expect(ca.closeVoting("topic 1")).to.emit(ca,"ManagerChanged").withArgs(res.address);
+    //expect(await cc.getManager()).to.equal(res.address);
+  });
+
+ it("Should close voting (change manager, not resident)", async function () {
+    const { ca, manager, res, accounts } = await loadFixture(deployAdapterFixture);
+    const { cc } = await loadFixture(deployImplementationFixture);
+
+    await ca.upgrade(cc.address);
+
+    await addResidents(ca, 15, accounts);
+
+    // Manager será um endereço qualquer, não resident
+    const externalManager = "0xE13781Ea049B04a67f7710Fe7A94578CfD58327E";
+    await ca.addTopic("topic 1","description 1", Category.CHANGE_MANAGER, 0, externalManager);
+    await ca.openVoting("topic 1");
+
+    await addVotes(ca, 15, accounts);
+
+    await expect(ca.closeVoting("topic 1")).to.emit(ca,"ManagerChanged").withArgs(externalManager);
     //expect(await cc.getManager()).to.equal(res.address);
   });
 

@@ -162,7 +162,7 @@ contract Condominium is ICondominium {
                 break;
             }
         }
-        require(index != 1000000, "Conselor not found");
+        require(index != 1000000, "Counselor not found");
         if (index != counselors.length - 1) {
             address latest = counselors[counselors.length - 1];
             counselors[index] = latest;
@@ -171,7 +171,7 @@ contract Condominium is ICondominium {
         residents[_residentIndex[counselor]].isCounselor = false;
     }
 
-    function setCounselor(address resident, bool isEntering) external onlyManager validAddress(resident) {
+    function setCounselor(address resident, bool isEntering) external {
         if (isEntering) {
             _addCounselor(resident);
         } else {

@@ -1,9 +1,9 @@
 # Contratos gerados na BSC Testnet (01/07/23):
 
-- Condominium Lib deployed to: 0x515486f26fb9dbfa5a66604a4c12ac74810fce71
-- Condominium deployed to: 0x2993154c72c786d56f843a6347fb3fea7d8ad545
-- Condominium Adapter deployed to: 0xcfe52696c70dc74ba09691bade1a79dc3ab00def
-    - Condominium Adapter upgraded to contract: 0x2993154c72c786d56f843a6347fb3fea7d8ad545
+- Condominium Lib deployed to: 0x408B5Ab0DAa98aE24C10ad45AD601997ccb9b7c5
+- Condominium deployed to: 0xE4f02c9Ec935Fdc7EA6490613BDD76A970C5E070
+- Condominium Adapter deployed to: 0xf52bde8d987cFd40a1c17B5fcF588267921414dC
+    - Condominium Adapter upgraded to contract: 0xE4f02c9Ec935Fdc7EA6490613BDD76A970C5E070
 
 
 

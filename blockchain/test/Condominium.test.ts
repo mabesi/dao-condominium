@@ -85,10 +85,25 @@ describe("Condominium", function () {
     await expect(cc.addResident(res.address, 21020)).to.be.revertedWith("This residence does not exists");
   });
 
-  it("Should remove resident", async function () {
+  it("Should remove resident (latest)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await cc.addResident(res.address, 2102);
     expect(await cc.isResident(res.address)).to.equal(true);
+    await cc.removeResident(res.address);
+    expect(await cc.isResident(res.address)).to.equal(false);
+  });
+
+  it("Should remove resident (first)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    
+    await cc.addResident(res.address, 2102);
+    expect(await cc.isResident(res.address)).to.equal(true);
+
+    await cc.addResident(accounts[2].address, 2103);
+
+    // Tornado counselor para cobrir o else do _isCounselor
+    await cc.setCounselor(accounts[2].address, true);
+
     await cc.removeResident(res.address);
     expect(await cc.isResident(res.address)).to.equal(false);
   });
@@ -107,42 +122,90 @@ describe("Condominium", function () {
     await expect(cc.removeResident(res.address)).to.be.revertedWith("A counselor cannot be removed");
   });
 
-  it("Should set conselor (true)", async function () {
+  it("Should add counselor", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    
     await cc.addResident(res.address, 2102);
     await cc.setCounselor(res.address,true);
-
+    
+    const resident = await cc.getResident(res.address)
+    expect(resident.isCounselor).to.equal(true);
+    
+    // Teste extra, para passar pelas linhas antes não cobertas e aumentar a cobertura dos testes
+    // Verificar se um counselor pode adicionar um resident
     const instance = cc.connect(res);
-    await instance.addResident(accounts[2].address,1302);
-
-    expect(await cc.counselors(res.address)).to.equal(true);
+    await instance.addResident(accounts[2].address, 1302);
     expect(await cc.isResident(accounts[2].address)).to.equal(true);
   });
 
-  it("Should set conselor (false)", async function () {
+  it("Should remove counselor (latest)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await cc.addResident(res.address, 2102);
 
     await cc.setCounselor(res.address,true);
-    expect(await cc.counselors(res.address)).to.equal(true);
+    const residentBefore = await cc.getResident(res.address)
+    expect(residentBefore.isCounselor).to.equal(true);
 
     await cc.setCounselor(res.address,false);
-    expect(await cc.counselors(res.address)).to.equal(false);
+    const residentAfter = await cc.getResident(res.address)
+    expect(residentAfter.isCounselor).to.equal(false);
   });
 
-  it("Should NOT set conselor (permission)", async function () {
+  it("Should remove counselor (first)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    await cc.addResident(accounts[2].address, 2103);
+
+    await cc.setCounselor(res.address,true);
+    await cc.setCounselor(accounts[2].address,true);
+
+    const residentBefore = await cc.getResident(res.address)
+    expect(residentBefore.isCounselor).to.equal(true);
+
+    await cc.setCounselor(res.address,false);
+    const residentAfter = await cc.getResident(res.address)
+    expect(residentAfter.isCounselor).to.equal(false);
+  });
+
+  it("Should NOT remove counselor (address)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.setCounselor("0x0000000000000000000000000000000000000000", false)).to.be.revertedWith("Invalid address");
+  });  
+
+  it("Should NOT add counselor (permission)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await cc.addResident(res.address, 2102);
     const instance = cc.connect(res);
     await expect(instance.setCounselor(res.address,true)).to.be.revertedWith("Only the manager can do this");
   });
 
-  it("Should NOT set conselor (address)", async function () {
+  it("Should NOT remove counselor (permission)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    await cc.setCounselor(res.address, true);
+    const instance = cc.connect(res);
+    await expect(instance.setCounselor(res.address,false)).to.be.revertedWith("Only the manager can do this");
+  });
+
+  it("Should NOT remove counselor (not exists)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await expect(cc.setCounselor(res.address,false)).to.be.revertedWith("Counselor not found");
+  });
+
+  it("Should NOT remove counselor (exists another counselor)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addResident(res.address, 2102);
+    await cc.setCounselor(res.address, true);
+
+    await expect(cc.setCounselor(accounts[2].address,false)).to.be.revertedWith("Counselor not found");
+  });
+
+  it("Should NOT add counselor (address)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await expect(cc.setCounselor("0x0000000000000000000000000000000000000000", true)).to.be.revertedWith("Invalid address");
   });
 
-  it("Should NOT set conselor (not resident)", async function () {
+  it("Should NOT add counselor (not resident)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await expect(cc.setCounselor(res.address,true)).to.be.revertedWith("The counselor must be a resident");
   });
@@ -170,6 +233,16 @@ describe("Condominium", function () {
     await cc.closeVoting("topic 1");
     
     expect(await cc.monthlyQuota()).to.equal(newQuotaValue);
+  });
+
+  it("Should get topic", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
+    await cc.addTopic("Topic 02", "Description topic 02.", Category.DECISION, 0, manager.address);
+    
+    const topic = await cc.getTopic("Topic 02");
+
+    expect(topic.title).to.equal("Topic 02");
   });
 
   it("Should add topic (manager)", async function () {
@@ -243,9 +316,18 @@ describe("Condominium", function () {
     await expect(cc.editTopic("Topic 01", "new description", 2, manager.address)).to.be.revertedWith("Only IDLE topics can be edited");
   });
 
-  it("Should remove topic", async function () {
+  it("Should remove topic (latest)", async function () {
     const { cc, manager, res, accounts } = await loadFixture(deployFixture);
     await cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
+    expect(await cc.topicExists("Topic 01")).to.equal(true);
+    await cc.removeTopic("Topic 01");
+    expect(await cc.topicExists("Topic 01")).to.equal(false);
+  });
+
+  it("Should remove topic (first)", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
+    await cc.addTopic("Topic 01", "Description topic 01.", Category.DECISION, 0, manager.address);
+    await cc.addTopic("Topic 02", "Description topic 02.", Category.DECISION, 0, manager.address);
     expect(await cc.topicExists("Topic 01")).to.equal(true);
     await cc.removeTopic("Topic 01");
     expect(await cc.topicExists("Topic 01")).to.equal(false);
@@ -475,5 +557,22 @@ describe("Condominium", function () {
     await expect(cc.transfer("topic 1", 101)).to.be.revertedWith("The amount must be less or equal the APPROVED topic");
   });
 
-});
+  it("Should pay quota", async function () {
+    const { cc, manager, res, accounts } = await loadFixture(deployFixture);
 
+    await cc.addResident(res.address, 2101);
+
+    const instance = cc.connect(res);
+    await instance.payQuota(2101, {value: ethers.utils.parseEther("0.01")});
+    const resident = await cc.getResident(res.address);
+    
+    // Pagar de novo, 31 dias após
+    // timestamp JS: em milissegundos / timestamp ETH: segundos (por isso dividir por 1000)
+    await time.setNextBlockTimestamp(parseInt(`${(Date.now() / 1000) + (31 * 24 * 60 * 60)}`));
+    await instance.payQuota(2101, {value: ethers.utils.parseEther("0.01")});
+    const residentAfter = await cc.getResident(res.address);
+
+    expect(residentAfter.nextPayment).to.equal(resident.nextPayment.add(30 * 24 * 60 * 60));    
+  });
+
+});
