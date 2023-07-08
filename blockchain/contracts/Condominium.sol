@@ -17,13 +17,15 @@ contract Condominium is ICondominium {
 
     address[] public counselors; // conselheiro => true/false
 
-    mapping(uint16 => uint) public nextPayment; // unidade => próximo pagamento (timestamp)
+    mapping(uint16 => uint) private _nextPayment; // unidade => próximo pagamento (timestamp)
 
     Lib.Topic[] public topics;
 
     mapping(bytes32 => uint) private _topicIndex; // hash do título => array index
-    mapping(bytes32 => Lib.Vote[]) public votings; // hash do título => votos
+    mapping(bytes32 => Lib.Vote[]) private _votings; // hash do título => votos
 
+    uint private constant _thirtyDays = 30 * 24 * 60 * 60;
+    
     constructor() {
 
         manager = msg.sender;
@@ -58,7 +60,7 @@ contract Condominium is ICondominium {
 
             Lib.Resident memory resident = _getResident(tx.origin);
 
-            require(block.timestamp <= nextPayment[resident.residence], "The resident must not be defaulter");
+            require(block.timestamp <= resident.nextPayment, "The resident must not be defaulter");
         }
         _;
     }
@@ -80,13 +82,17 @@ contract Condominium is ICondominium {
         uint index = _residentIndex[resident];
         if (index < residents.length) {
             Lib.Resident memory result = residents[index];
-            if (result.wallet == resident) return result;
+            if (result.wallet == resident) {
+                result.nextPayment = _nextPayment[result.residence];
+                return result;
+            }
         }
         return Lib.Resident({
             wallet: address(0),
             residence: 0,
             isCounselor: false,
-            isManager: false
+            isManager: false,
+            nextPayment: 0
         });
     }
 
@@ -95,7 +101,7 @@ contract Condominium is ICondominium {
     }
 
     function getResidents(uint page, uint pageSize) external view returns (Lib.ResidentPage memory) {
-        Lib.Resident[] memory result = new Lib.Resident[pageSize];
+        Lib.Resident[] memory result = new Lib.Resident[](pageSize);
         uint skip = ((page - 1) * pageSize);
         uint index = 0;
         for (
@@ -103,7 +109,7 @@ contract Condominium is ICondominium {
             i < (skip + pageSize) && i < residents.length;
             i++
         ) {
-            result[index++] = residents[i];
+            result[index++] = _getResident(residents[i].wallet);
         }
         return Lib.ResidentPage({
             residents: result,
@@ -117,7 +123,8 @@ contract Condominium is ICondominium {
             wallet: resident,
             residence: residenceId,
             isCounselor: false,
-            isManager: resident == manager
+            isManager: resident == manager,
+            nextPayment: 0
         }));
         _residentIndex[resident] = residents.length - 1;
     }
@@ -128,6 +135,7 @@ contract Condominium is ICondominium {
         if (index != residents.length - 1) {
             Lib.Resident memory latest = residents[residents.length - 1];
             residents[index] = latest;
+            _residentIndex[latest.wallet] = index;
         }
         residents.pop();
         delete _residentIndex[resident];
@@ -141,9 +149,9 @@ contract Condominium is ICondominium {
     }
 
     function _addCounselor(address counselor) private onlyManager validAddress(counselor) {
-        require(isResident(resident), "The counselor must be a resident");
+        require(isResident(counselor), "The counselor must be a resident");
         counselors.push(counselor);
-        residents[_residentIndex[counselor]].isConselor = true;
+        residents[_residentIndex[counselor]].isCounselor = true;
     }
 
     function _removeCounselor(address counselor) private onlyManager validAddress(counselor) {
@@ -159,8 +167,8 @@ contract Condominium is ICondominium {
             address latest = counselors[counselors.length - 1];
             counselors[index] = latest;
         }
-        conselors.pop();
-        residents[_residentIndex[counselor]].isConselor = false;
+        counselors.pop();
+        residents[_residentIndex[counselor]].isCounselor = false;
     }
 
     function setCounselor(address resident, bool isEntering) external onlyManager validAddress(resident) {
@@ -171,13 +179,52 @@ contract Condominium is ICondominium {
         }
     }
 
-    function getTopic(string memory title) public view returns (Lib.Topic memory) {
+    function _getTopic(string memory title) private view returns (Lib.Topic memory) {
         bytes32 topicId = keccak256(bytes(title));
-        return topics[topicId];
+        uint index = _topicIndex[topicId];
+
+        if (index < topics.length) {
+            Lib.Topic memory result = topics[index];
+            if (index > 0 || keccak256(bytes(result.title))== topicId)
+                return result;
+        }
+
+        return Lib.Topic({
+            title: "",
+            description: "",
+            status: Lib.Status.DELETED,
+            createdDate: 0,
+            startDate: 0,
+            endDate: 0,
+            category: Lib.Category.DECISION,
+            amount: 0,
+            responsible: address(0)
+        });
     }
 
+    function getTopic(string memory title) external view returns (Lib.Topic memory) {
+        return _getTopic(title);
+    }
+
+    function getTopics(uint page, uint pageSize) external view returns (Lib.TopicPage memory) {
+        Lib.Topic[] memory result = new Lib.Topic[](pageSize);
+        uint skip = ((page - 1) * pageSize);
+        uint index = 0;
+        for (
+            uint i = skip;
+            i < (skip + pageSize) && i < topics.length;
+            i++
+        ) {
+            result[index++] = topics[i];
+        }
+        return Lib.TopicPage({
+            topics: result,
+            total: topics.length
+        });
+    }    
+
     function topicExists(string memory title) public view returns (bool) {
-        return getTopic(title).createdDate > 0;
+        return _getTopic(title).createdDate > 0;
     }
 
     function addTopic(string memory title, string memory description, Lib.Category category, uint amount, address responsible) external onlyResidents {
@@ -200,16 +247,49 @@ contract Condominium is ICondominium {
             responsible: responsible != address(0) ? responsible : tx.origin
         });
 
-        topics[keccak256(bytes(title))] = newTopic;
+        _topicIndex[keccak256(bytes(title))] = topics.length;
+        topics.push(newTopic);
+    }
+
+    function editTopic(string memory topicToEdit, string memory description, uint amount, address responsible)
+             external onlyManager returns (Lib.TopicUpdate memory) {
+        
+        Lib.Topic memory topic = _getTopic(topicToEdit);
+        require(topic.createdDate > 0, "This topic does not exists");
+        require(topic.status == Lib.Status.IDLE, "Only IDLE topics can be edited");
+
+        bytes32 topicId = keccak256(bytes(topicToEdit));
+        uint index = _topicIndex[topicId];
+
+        if(bytes(description).length > 0) topics[index].description = description;
+        if(amount > 0) topics[index].amount = amount;
+        if(responsible != address(0)) topics[index].responsible = responsible;
+
+        return Lib.TopicUpdate({
+            id: topicId,
+            title: topic.title,
+            category: topic.category,
+            status: topic.status
+        });
     }
 
     function removeTopic(string memory title) external onlyManager returns (Lib.TopicUpdate memory) {
         
-        Lib.Topic memory topic = getTopic(title);
+        Lib.Topic memory topic = _getTopic(title);
         require(topic.createdDate > 0, "The topic does not exists");
         require(topic.status == Lib.Status.IDLE, "Only IDLE topics can be removed");
         bytes32 topicId = keccak256(bytes(title));
-        delete topics[topicId];
+
+        uint index = _topicIndex[topicId];
+
+        if (index != topics.length - 1) {
+            Lib.Topic memory latest = topics[topics.length - 1];
+            topics[index] = latest;
+            _topicIndex[keccak256(bytes(latest.title))] = index;
+        }
+
+        topics.pop();
+        delete _topicIndex[topicId];
 
         return Lib.TopicUpdate({
             id: topicId,
@@ -221,12 +301,15 @@ contract Condominium is ICondominium {
 
     function openVoting(string memory title) external onlyManager returns (Lib.TopicUpdate memory) {
         
-        Lib.Topic memory topic = getTopic(title);
+        Lib.Topic memory topic = _getTopic(title);
         require(topic.createdDate > 0, "The topic does not exists");
         require(topic.status == Lib.Status.IDLE, "Only IDLE topics can be opened for voting");
         bytes32 topicId = keccak256(bytes(title));
-        topics[topicId].status = Lib.Status.VOTING;
-        topics[topicId].startDate = block.timestamp;
+        
+        uint index = _topicIndex[topicId];
+
+        topics[index].status = Lib.Status.VOTING;
+        topics[index].startDate = block.timestamp;
         
         return Lib.TopicUpdate({
             id: topicId,
@@ -240,14 +323,14 @@ contract Condominium is ICondominium {
         
         require(option != Lib.Options.EMPTY, "The option cannot be EMPTY");
         
-        Lib.Topic memory topic = getTopic(title);
+        Lib.Topic memory topic = _getTopic(title);
         require(topic.createdDate > 0, "The topic does not exists");
         require(topic.status == Lib.Status.VOTING, "Only VOTING topics can be voted");
         
-        uint16 residence = residents[tx.origin];
+        uint16 residence = residents[_residentIndex[tx.origin]].residence;
         bytes32 topicId = keccak256(bytes(title));
         
-        Lib.Vote[] memory votes = votings[topicId];
+        Lib.Vote[] memory votes = _votings[topicId];
         for (uint8 i = 0; i < votes.length; i++) {
             require(votes[i].residence != residence, "A residence should vote only once");
         }
@@ -259,33 +342,12 @@ contract Condominium is ICondominium {
             timestamp: block.timestamp
         });
 
-        votings[topicId].push(newVote);
-    }
-
-    function editTopic(string memory topicToEdit, string memory description, uint amount, address responsible)
-             external onlyManager returns (Lib.TopicUpdate memory) {
-        
-        Lib.Topic memory topic = getTopic(topicToEdit);
-        require(topic.createdDate > 0, "This topic does not exists");
-        require(topic.status == Lib.Status.IDLE, "Only IDLE topics can be edited");
-
-        bytes32 topicId = keccak256(bytes(topicToEdit));
-
-        if(bytes(description).length > 0) topics[topicId].description = description;
-        if(amount > 0) topics[topicId].amount = amount;
-        if(responsible != address(0)) topics[topicId].responsible = responsible;
-
-        return Lib.TopicUpdate({
-            id: topicId,
-            title: topic.title,
-            category: topic.category,
-            status: topic.status
-        });
+        _votings[topicId].push(newVote);
     }
 
     function closeVoting(string memory title) external onlyManager returns (Lib.TopicUpdate memory) {
         
-        Lib.Topic memory topic = getTopic(title);
+        Lib.Topic memory topic = _getTopic(title);
         require(topic.createdDate > 0, "The topic does not exists");
         require(topic.status == Lib.Status.VOTING, "Only VOTING topics can be closed");
 
@@ -304,7 +366,7 @@ contract Condominium is ICondominium {
         require(numberOfVotes(title) >= minimumVotes, "You cannot finish a voting without the minimum votes");
 
         bytes32 topicId = keccak256(bytes(title));
-        Lib.Vote[] memory votes = votings[topicId];
+        Lib.Vote[] memory votes = _votings[topicId];
 
         for (uint8 i=0; i < votes.length; i++) {
             if (votes[i].option == Lib.Options.YES)
@@ -319,14 +381,21 @@ contract Condominium is ICondominium {
             ? Lib.Status.APPROVED
             : Lib.Status.DENIED;
 
-        topics[topicId].status = newStatus; 
-        topics[topicId].endDate = block.timestamp;
+        uint index = _topicIndex[topicId];
+        topics[index].status = newStatus; 
+        topics[index].endDate = block.timestamp;
 
         if (newStatus == Lib.Status.APPROVED) {
             if (topic.category == Lib.Category.CHANGE_QUOTA) {
                 monthlyQuota = topic.amount;
             } else if (topic.category == Lib.Category.CHANGE_MANAGER) {
+                if (isResident(manager))
+                    residents[_residentIndex[manager]].isManager = false;
+
                 manager = topic.responsible;
+                
+                if (isResident(topic.responsible))
+                    residents[_residentIndex[topic.responsible]].isManager = true;
             }
         }
 
@@ -340,27 +409,36 @@ contract Condominium is ICondominium {
 
     function numberOfVotes(string memory title) public view returns(uint256) {
         bytes32 topicId = keccak256(bytes(title));
-        return votings[topicId].length;
-    }    
+        return _votings[topicId].length;
+    }
+
+    function getVotes(string memory topicTitle) external view returns (Lib.Vote[] memory) {
+        return _votings[keccak256(bytes(topicTitle))];
+    }
 
     function payQuota(uint16 residenceId) external payable {
         require(residenceExists(residenceId), "The residence does not exists");
         require(msg.value >= monthlyQuota, "Wrong value");
-        require(block.timestamp > payments[residenceId] + (30 * 24 * 60 * 60), "You cannot pay twice a month");
-        payments[residenceId] = block.timestamp;
+        require(block.timestamp > _nextPayment[residenceId], "You cannot pay twice a month");
+        
+        if (_nextPayment[residenceId] == 0)
+            _nextPayment[residenceId] = block.timestamp + _thirtyDays;
+        else
+            _nextPayment[residenceId] += _thirtyDays;
     }
 
     function transfer(string memory topicTitle, uint amount) external onlyManager returns (Lib.TransferReceipt memory) {
         
         require(address(this).balance >= amount,"Insufficient funds");
-        Lib.Topic memory topic = getTopic(topicTitle);
+        Lib.Topic memory topic = _getTopic(topicTitle);
         require(topic.status == Lib.Status.APPROVED && topic.category == Lib.Category.SPENT,
                 "Only APPROVED SPENT topics can be used for transfers");
         require(topic.amount >= amount,"The amount must be less or equal the APPROVED topic");
 
         payable(topic.responsible).transfer(amount);
         bytes32 topicId = keccak256(bytes(topicTitle));
-        topics[topicId].status = Lib.Status.SPENT;
+        uint index = _topicIndex[topicId];
+        topics[index].status = Lib.Status.SPENT;
 
         return Lib.TransferReceipt({
             to: topic.responsible,
@@ -376,13 +454,5 @@ contract Condominium is ICondominium {
     function getQuota() external view returns (uint) {
         return monthlyQuota;
     }
-
-    function getTopic(string memory title) external view returns (Lib.Topic memory) {
-        
-    }
-
-    function getTopics(uint page, uint pageSize) external view returns (Lib.TopicPage memory) {
-        
-    } 
 
 } // End Contract

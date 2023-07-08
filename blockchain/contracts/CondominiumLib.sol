@@ -63,6 +63,7 @@ library CondominiumLib {
         uint16 residence;
         bool isCounselor;
         bool isManager;
+        uint nextPayment;
     }
 
     struct ResidentPage {
