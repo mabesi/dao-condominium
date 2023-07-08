@@ -3,7 +3,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Condominium } from "../typechain-types";
-import { isCallTrace } from "hardhat/internal/hardhat-network/stack-traces/message-trace";
 
 describe("Condominium", function () {
 
