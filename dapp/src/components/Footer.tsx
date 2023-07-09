@@ -1,12 +1,4 @@
-import React from 'react';
-//import { useEffect, useState } from 'react';
-//import { useNavigate } from 'react-router-dom';
-//import x from './x';
-
 function Footer() {
-
-    //const navigate = useNavigate();
-    //const [message, setMessage] = useState<String>("");
 
     return (
         <footer className="footer py-4  ">

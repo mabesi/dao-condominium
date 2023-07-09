@@ -1,35 +1,29 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
-import { getAddress, upgrade } from '../services/Web3Service';
-//import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
-import Footer from '../components/Footer';
+import { useNavigate } from 'react-router-dom';
+import Sidebar from '../../components/Sidebar';
+import Footer from '../../components/Footer';
+import SwitchInput from '../../components/SwitchInput';
+import { Resident, addResident, isManager } from '../../services/Web3Service';
 
-function Settings() {
+function ResidentPage() {
 
-    //const navigate = useNavigate();
-    const [contract, setContract] = useState<string>("");
-    const [message, setMessage] = useState<string>("");
+    const navigate = useNavigate();
+    const [message, setMessage] = useState<String>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    
-    useEffect(() => {
-        setIsLoading(true);
-        getAddress()
-        .then(contractAddress => {
-            setContract(contractAddress);
-            setIsLoading(false);
-        })
-        .catch(err => {
-            setMessage(err.message);
-            setIsLoading(false);
-        });
-    }, []);
-        
+    const [resident, setResident] = useState<Resident>({} as Resident);
+
+    function onResidentChange(evt: React.ChangeEvent<HTMLInputElement>) {
+        setResident(prevState => ({...prevState, [evt.target.id]: evt.target.value}));
+    }
+
     function btnSaveClick() {
-        setMessage("Saving data. Wait...");
-        upgrade(contract)
-            .then(tx => setMessage("Settings saved! It may take some minutes to have effect."))
-            .catch(err => setMessage(err.message));
+        if (resident) {
+            setMessage("Connecting to wallet. Wait...");
+            addResident(resident.wallet, resident.residence)
+                .then(tx => navigate("/residents?tx=" + tx.hash))
+                .catch(err => setMessage(err.message));
+        }
     }
 
     return (
@@ -43,8 +37,8 @@ function Settings() {
                         <div className="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
                         <div className="bg-gradient-primary shadow-primary border-radius-lg pt-4 pb-3">
                             <h6 className="text-white text-capitalize ps-3">
-                                <i className="material-icons opacity-10 me-2" >settings</i>
-                                Settings
+                                <i className="material-icons opacity-10 me-2" >group</i>
+                                New Resident
                             </h6>
                         </div>
                         </div>
@@ -66,24 +60,39 @@ function Settings() {
                             <div className="row ms-3">
                                 <div className="col-md-6 mb-3">
                                     <div className="form-group">
-                                        <label htmlFor="adapter">Adapter Address:</label>
-                                        <input type="text" className="form-control" id="adapter" value={process.env.REACT_APP_ADAPTER_ADDRESS} disabled={true} />
+                                        <label htmlFor="wallet">Wallet Address:</label>
+                                        <div className="input-group input-group-outline">
+                                            <input type="text" className="form-control" id="wallet" value={resident.wallet || ""} placeholder="0x00" onChange={onResidentChange} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                             <div className="row ms-3">
                                 <div className="col-md-6 mb-3">
                                     <div className="form-group">
-                                        <label htmlFor="contract">Implementation Contract Address:</label>
+                                        <label htmlFor="residence">Residence Id:</label>
                                         <div className="input-group input-group-outline">
-                                            <input type="text" className="form-control" id="contract" value={contract} onChange={evt => setContract(evt.target.value)} />
+                                            <input type="number" className="form-control" id="residence" value={resident.residence || ""} placeholder="1101" onChange={onResidentChange} />
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                            {
+                                isManager()
+                                ? (
+                                    <div className="row ms-3">
+                                        <div className="col-md-6 mb-3">
+                                            <div className="form-group">
+                                                <SwitchInput id='isCounselor' isChecked={resident.isCounselor} text='Is Counselor?' onChange={onResidentChange} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                                : <></>
+                            }
                             <div className="row ms-3">
                                 <div className="col-md-12 mb-3">
-                                    <button className="btn bg-gradient-dark me-2" onClick={btnSaveClick} >
+                                    <button className="btn bg-gradient-dark me-2" onClick={btnSaveClick}>
                                         <i className="material-icons opacity-10 me-2" >save</i>
                                         Save Settings
                                     </button>
@@ -104,4 +113,4 @@ function Settings() {
     )
 }
 
-export default Settings;
+export default ResidentPage;

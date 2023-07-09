@@ -44,6 +44,10 @@ function getContractSigner(provider?: ethers.providers.Web3Provider) : ethers.Co
     return contract.connect(signer);
 }
 
+export function isManager() : boolean {
+    return parseInt(localStorage.getItem("profile") || "0") === Profile.MANAGER;
+}
+
 export async function doLogin() : Promise<LoginResult> {
 
     const provider = getProvider();
@@ -94,4 +98,10 @@ export async function upgrade(contractAddress: string) : Promise<ethers.Transact
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
     const cc = getContractSigner();
     return (await cc.upgrade(contractAddress)) as ethers.Transaction;
+}
+
+export async function addResident(wallet: string, residenceId: number) : Promise<ethers.Transaction> {
+    if (getProfile() === Profile.RESIDENT) throw new Error(`You do not have permission.`);
+    const cc = getContractSigner();
+    return (await cc.addResident(wallet, residenceId)) as ethers.Transaction;
 }
