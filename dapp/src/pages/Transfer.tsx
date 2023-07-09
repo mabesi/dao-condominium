@@ -1,10 +1,14 @@
 import React from 'react';
+import Sidebar from '../components/Sidebar';
 
 function Transfer() {
     return (
-        <div>
-            Transfer Content
-        </div>
+        <>
+            <Sidebar />
+            <div>
+                Transfer content...
+            </div>
+        </>
     )
 }
 
