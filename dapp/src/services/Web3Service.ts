@@ -49,6 +49,10 @@ function getContractSigner(provider?: ethers.providers.Web3Provider) : ethers.Co
     return contract.connect(signer);
 }
 
+export function isResident() : boolean {
+    return parseInt(localStorage.getItem("profile") || "0") === Profile.RESIDENT;
+}
+
 export function isManager() : boolean {
     return parseInt(localStorage.getItem("profile") || "0") === Profile.MANAGER;
 }
@@ -99,6 +103,11 @@ export async function getAddress() : Promise<string> {
     return contractAddress;
 }
 
+export async function getResident(wallet: string) : Promise<Resident> {
+    const cc = getContract();
+    return cc.getResident(wallet) as Resident;
+}
+
 export async function getResidents(page: number = 1, pageSize: number = 10) : Promise<ResidentPage> {
     const cc = getContract();
     const result = await cc.getResidents(page, pageSize) as ResidentPage;
@@ -127,7 +136,13 @@ export async function addResident(wallet: string, residenceId: number) : Promise
 }
 
 export async function removeResident(wallet: string) : Promise<ethers.Transaction> {
-    if (getProfile() === Profile.MANAGER) throw new Error(`You do not have permission.`);
+    if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
     const cc = getContractSigner();
     return (await cc.removeResident(wallet)) as ethers.Transaction;
+}
+
+export async function setCounselor(wallet: string, isEntering: boolean) : Promise<ethers.Transaction> {
+    if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
+    const cc = getContractSigner();
+    return (await cc.setCounselor(wallet, isEntering)) as ethers.Transaction;
 }
