@@ -20,6 +20,11 @@ export type Resident = {
     nextPayment: number;
 }
 
+export type ResidentPage = {
+    residents: Resident[];
+    total: number;
+}
+
 const ADAPTER_ADDRESS = `${process.env.REACT_APP_ADAPTER_ADDRESS}`;
 
 function getProfile() : Profile {
@@ -90,8 +95,23 @@ export function doLogout() {
 
 export async function getAddress() : Promise<string> {
     const cc = getContract();
-    const contractAddress = (await cc.getAddress()) as string;
+    const contractAddress = await cc.getAddress() as string;
     return contractAddress;
+}
+
+export async function getResidents(page: number = 1, pageSize: number = 10) : Promise<ResidentPage> {
+    const cc = getContract();
+    const result = await cc.getResidents(page, pageSize) as ResidentPage;
+    const residents = result.residents.filter(r => r.residence).sort((a,b) => {
+        if (a.residence > b.residence)
+            return 1;
+        else
+            return -1
+    });
+    return {
+        residents,
+        total: result.total
+    } as ResidentPage;
 }
 
 export async function upgrade(contractAddress: string) : Promise<ethers.Transaction> {
