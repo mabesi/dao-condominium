@@ -7,6 +7,7 @@ import Footer from '../../components/Footer';
 import Alert from '../../components/Alert';
 import ResidentRow from './ResidentRow';
 import { Resident, getResidents } from '../../services/Web3Service';
+import Loader from '../../components/Loader';
 
 function Residents() {
 
@@ -68,18 +69,7 @@ function Residents() {
                                     : <></>
                                 }
                                 {
-                                    isLoading
-                                    ? (
-                                        <div className="row ms-3">
-                                            <div className="col-md-6 mb-3">
-                                                <p>
-                                                    <i className="material-icons opacity-10 me-2" >hourglass_empty</i>
-                                                    Loading...
-                                                </p>
-                                            </div>
-                                        </div>                            
-                                    )
-                                    : <></>
+                                    isLoading ? <Loader />: <></>
                                 }
                                 <div className="table-responsive p-0">
                                     <table className="table align-items-center mb-0">
