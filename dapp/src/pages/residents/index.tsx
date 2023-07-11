@@ -1,17 +1,16 @@
 //import React from 'react';
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-//import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import Footer from '../../components/Footer';
 import Alert from '../../components/Alert';
 import ResidentRow from './ResidentRow';
-import { Resident, getResidents } from '../../services/Web3Service';
+import { Resident, getResidents, removeResident } from '../../services/Web3Service';
 import Loader from '../../components/Loader';
 
 function Residents() {
 
-    //const navigate = useNavigate();
+    const navigate = useNavigate();
     const [residents, setResidents] = useState<Resident[]>([]);
     const [message, setMessage] = useState<string>("");
     const [error, setError] = useState<string>("");
@@ -20,7 +19,6 @@ function Residents() {
     function useQuery() {
         return new URLSearchParams(useLocation().search);
     }
-
     const query = useQuery();
 
     useEffect(() => {
@@ -40,6 +38,21 @@ function Residents() {
             setMessage("Your transaction is being processed. It may take some minutes to have effect.");
         }
     }, []);
+
+    function onDeleteResident(wallet: string) {
+        setIsLoading(true);
+        setMessage("");
+        setError("");
+        removeResident(wallet)
+            .then(tx => {
+                navigate("/residents?tx=" + tx.hash);
+                setIsLoading(false);
+            })
+            .catch(err => {
+                setError(err.message);
+                setIsLoading(false);
+            });
+    }
 
     return (
         <>
@@ -83,13 +96,12 @@ function Residents() {
                                         </tr>
                                     </thead>
                                     <tbody>
+
                                         {
                                             residents && residents.length
-                                            ? residents.map(resident => <ResidentRow data={resident} onDelete={(wallet: string) => alert(wallet)} />)
+                                            ? residents.map(resident => <ResidentRow data={resident} onDelete={() => onDeleteResident(resident.wallet)} />)
                                             : <></>
                                         }
-
-                                        
                                         
                                     </tbody>
                                     </table>

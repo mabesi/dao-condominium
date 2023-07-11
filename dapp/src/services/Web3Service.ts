@@ -125,3 +125,9 @@ export async function addResident(wallet: string, residenceId: number) : Promise
     const cc = getContractSigner();
     return (await cc.addResident(wallet, residenceId)) as ethers.Transaction;
 }
+
+export async function removeResident(wallet: string) : Promise<ethers.Transaction> {
+    if (getProfile() === Profile.MANAGER) throw new Error(`You do not have permission.`);
+    const cc = getContractSigner();
+    return (await cc.removeResident(wallet)) as ethers.Transaction;
+}
