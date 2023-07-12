@@ -76,6 +76,22 @@ npx tsc --init
 
 - Criar demais rotas e funções
 
+- Arquitetura do Backend
+    - Frontend -> Backend -> Database
+    - Backend
+        Request: Router -> Middleware -> Controller -> Repository -> Model
+        Response: Model -> Repository -> Controller -> Middleware -> Router (?)
+    - Módulos(Pastas/Arquivos)
+        - 
+
+
+
+
+
+
+
+
+
 
 
 # MARKDOWN EXAMPLES
