@@ -22,7 +22,7 @@ export type Resident = {
 
 export type ResidentPage = {
     residents: Resident[];
-    total: number;
+    total: ethers.BigNumber;
 }
 
 const ADAPTER_ADDRESS = `${process.env.REACT_APP_ADAPTER_ADDRESS}`;
