@@ -12,24 +12,69 @@
 - 0xFE54F9d72e53606ce441962ecacbb7732c8f52Ad
 - 0x1e7BDEeABaDcD55C3fC22815dE7226444961C634
 
+# Backend Packages
 
+- Dependências do projeto
+npm i express dotenv (framework web/api e configurações de ambiente)
+npm i nodemon express-async-errors  morgan (tratamento de erros e visualização de logs de requisições)
+npm i helmet cors (segurança)
+npm i ethers (somente para Web3)
 
+- Dependências de desenvolvimento
+npm i -D typescript ts-node @types/express @types/cors @types/morgan
 
+- Confirurar typescript
+npx tsc --init
 
+- Configurar tsconfig.json
+    - "rootDir": "./src/"
+    - "outDir": "./dist/"
+    - incluir -> "ts-node": { "transpileOnly" : true } //no final das configurações, após o compilerOptions
 
+- Criar .gitignore
+    - node_modules
+    - dist
+    - .env
 
+- Criar .env
+    - PORT=3001
+    - CORS_ORIGIN=* | CORS_ORIGIN=http://localhost:3000
 
+- Criar aplicação
+    - criar pasta src
+    - criar arquivo app.ts
+        - importar express, {Request, Response, NextFunction} do express
+        - criar constante app = express()
+        - app.use("/", (req, res, next) => {res.send(`Hello World`)})
+        - exportar app
+    - Criar server.ts
+        - importar dotenv
+        - configurar dotenv
+        - importar app
+        - criar constante e carregar PORT do dotenv
+        - ativar escuta de app na porta, logando a porta no console
 
+- Configurar scripts
+    - dev: npx nodemon ./src/server.ts --watch './src/' -e ts
+    - compile: npx tsc
+    - start: node ./dist/server.js
 
+- Ativar ferramentas
+    - importar morgan, express-async-errors e cors
+    - app.use(morgan("tiny"))
+    - app.use(helmet())
+    - app.use(cors({origin: process.env.CORS_ORIGIN}))
+    - app.use(express.json())
 
+- Criar Middlewares
+    - criar pasta middleware
+    - criar errorMiddleware.ts
+        - importar Request, Response, NextFunction do express
+        - exportar função de interceptação de erros com status 500 e log no console
+    - importar no app.ts
+    - ativar o middleware, na última posição
 
-
-
-
-
-
-
-
+- Criar demais rotas e funções
 
 
 
