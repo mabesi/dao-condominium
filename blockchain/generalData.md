@@ -74,6 +74,22 @@ npx tsc --init
     - importar no app.ts
     - ativar o middleware, na última posição
 
+- Configurar Database
+    - Instalar e ativar o serviço MongoDB
+    - instalar dependência
+        - npm i mongodb
+    - criar módulo de conexão
+        - arquivo db.ts
+        - importar { MongoClient, Db } from mongodb
+        - criar singleton : Db
+        - exportar Promise de Db
+        - export default async() Promise<Db> {
+            tem conexão? retorna
+            Não tem, cria nova, conecta ao servidor em client (MONGO_HOST)
+            conecta ao database (MONGO_DATABASE) via client e atribui ao singleton
+            retorna o singleton
+        }
+
 - Criar demais rotas e funções
 
 - Arquitetura do Backend
@@ -83,7 +99,6 @@ npx tsc --init
         Response: Model -> Repository -> Controller -> Middleware -> Router (?)
     - Módulos(Pastas/Arquivos)
         - 
-
 
 
 
