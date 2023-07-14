@@ -98,7 +98,21 @@ npx tsc --init
         Request: Router -> Middleware -> Controller -> Repository -> Model
         Response: Model -> Repository -> Controller -> Middleware -> Router (?)
     - Módulos(Pastas/Arquivos)
-        - 
+        - middlewares
+        - models
+        - repositories
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
