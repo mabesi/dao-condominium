@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import errorMiddleware from './middlewares/errorMiddleware';
 import residentRouter from './routers/residentRouter';
 import authController from './controllers/authController';
+import authenticationMiddleware from './middlewares/authenticationMiddleware';
 
 const app = express();
 
@@ -17,7 +18,7 @@ app.use(express.json());
 
 // Routes
 app.use("/login/", authController.doLogin);
-app.use("/residents/", residentRouter);
+app.use("/residents/", authenticationMiddleware, residentRouter);
 
 app.use("/", (req: Request, res: Response, next: NextFunction) => {
     res.send("Health Check");

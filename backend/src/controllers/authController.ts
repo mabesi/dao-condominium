@@ -3,7 +3,7 @@ import residentRepository from '../repositories/residentRepository';
 import { ethers } from 'ethers';
 import jwt from 'jsonwebtoken';
 
-type LoginData = {
+export type LoginData = {
     timestamp: number;
     wallet: string;
     secret: string;
