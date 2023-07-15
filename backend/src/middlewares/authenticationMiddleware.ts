@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = `${process.env.JWT_SECRET}`;
 
-export default (error: Error, req: Request, res: Response, next: NextFunction) => {
+export default (req: Request, res: Response, next: NextFunction) => {
     
     const token = req.headers['authorization'];
 
@@ -12,6 +12,7 @@ export default (error: Error, req: Request, res: Response, next: NextFunction) =
         try {
 
             const decoded = jwt.verify(token, JWT_SECRET);
+            console.log(decoded);
             
             if (decoded) {
                 res.locals.token = decoded;
@@ -21,7 +22,7 @@ export default (error: Error, req: Request, res: Response, next: NextFunction) =
             }
 
         } catch (err:any) {
-            console.error(err.message);
+            console.error(err);
         }
 
     } else {

@@ -118,7 +118,9 @@ contract Condominium is ICondominium {
     }
 
     function addResident(address resident, uint16 residenceId) external onlyCouncil validAddress(resident) {
-        require(residences[residenceId], "This residence does not exists");
+        require(residenceExists(residenceId), "This residence does not exists");
+        require(!isResident(resident), "This resident already exists");
+
         residents.push(Lib.Resident({
             wallet: resident,
             residence: residenceId,

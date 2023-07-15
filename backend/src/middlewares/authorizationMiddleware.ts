@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { LoginData } from '../controllers/authController';
 import { Profile } from '../models/resident';
 
-export function onlyManager(error: Error, req: Request, res: Response, next: NextFunction) {
+export function onlyManager(req: Request, res: Response, next: NextFunction) {
     
     if (!res.locals.token) return res.sendStatus(403);
 
@@ -14,7 +14,7 @@ export function onlyManager(error: Error, req: Request, res: Response, next: Nex
         return res.sendStatus(403);
 }
 
-export function onlyCounselor(error: Error, req: Request, res: Response, next: NextFunction) {
+export function onlyCounselor(req: Request, res: Response, next: NextFunction) {
     
     if (!res.locals.token) return res.sendStatus(403);
 

@@ -5,6 +5,12 @@
 - Condominium Adapter deployed to: 0xf52bde8d987cFd40a1c17B5fcF588267921414dC
     - Condominium Adapter upgraded to contract: 0xE4f02c9Ec935Fdc7EA6490613BDD76A970C5E070
 
+NOVO DEPLOY (Correção de resident duplicado)---------------------------
+Condominium Lib deployed to: 0x6C4d20850d2bab54CA87a85ebA143604607DC109
+Condominium deployed to: 0xcfd1FFd642D1cA3FD60A7EcA6b167b50369C106b
+Condominium Adapter deployed to: 0xb8e9288f4b116129523bC7a2C09028737fc626FC
+Condominium Adapter upgraded to contract: 0xcfd1FFd642D1cA3FD60A7EcA6b167b50369C106b
+
 # My test wallets
 
 - 0x957339c0b3F129B5AF1DF15A2cAb1301f6799f93
