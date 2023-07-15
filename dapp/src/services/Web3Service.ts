@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import ABI from './ABI.json';
+import { doApiLogin } from './ApiService';
 
 export enum Profile {
     RESIDENT = 0,
@@ -10,6 +11,7 @@ export enum Profile {
 export type LoginResult = {
     account: string;
     profile: Profile;
+    token: string;
 }
 
 export type Resident = {
@@ -86,9 +88,22 @@ export async function doLogin() : Promise<LoginResult> {
 
     localStorage.setItem("account", accounts[0]);
 
+    // Assinar mensagem para autenticação no backend
+    const signer = provider.getSigner();
+    const timestamp = Date.now();
+    const message = `Authenticating to Condominium: Timestamp: ${timestamp}`;
+    const secret = await signer.signMessage(message);
+
+    // Enviar secret para backend e receber o token
+    const token = await doApiLogin(accounts[0], secret, timestamp);
+    // Salvar o token no localStorage
+    localStorage.setItem("token", token);
+
+
     return {
         account: accounts[0],
-        profile: parseInt(localStorage.getItem("profile") || "0")
+        profile: parseInt(localStorage.getItem("profile") || "0"),
+        token: token
     } as LoginResult;
 }
 

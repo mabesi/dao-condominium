@@ -50,7 +50,7 @@ npx tsc --init
     - Criar server.ts
         - importar dotenv
         - configurar dotenv
-        - importar app
+        - importar app (sempre após configurar o dotenv)
         - criar constante e carregar PORT do dotenv
         - ativar escuta de app na porta, logando a porta no console
 
@@ -101,9 +101,21 @@ npx tsc --init
         - middlewares
         - models
         - repositories
+        - controllers
+        - routes
 
-
-
+- Autenticação Web 2 + 3
+    - Instalar axios (cliente http) no Dapp
+        $ npm i axios
+    - e os types do axios
+        $ npm i -D @types/axios
+    - Instalar o JWT no backend
+        $ npm i jsonwebtoken
+    - e os types do jwt
+        $ npm i -D @types/jsonwebtoken
+    - No método de login do DApp, criar mensagem com timestamp, assinar com a carteira e enviar para o backend
+    - No backend, criar rota e controller para receber, recriar e comparar o secret (msg assinada)
+    - Usar JWT para gerar o token de autenticação, com base na SECRET e no EXPIRES
 
 
 
