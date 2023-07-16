@@ -3,7 +3,7 @@ import { Profile } from './Web3Service';
 
 const API_URL=`${process.env.REACT_APP_API_URL}`;
 
-type ApiResident = {
+export type ApiResident = {
     wallet: string;
     name: string;
     profile: Profile;    
