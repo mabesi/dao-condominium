@@ -18,14 +18,15 @@ describe("Condominium", function () {
     VOTING = 1,
     APPROVED = 2,
     DENIED = 3,
-    SPENT = 4
+    DELETED = 4,
+    SPENT = 5
   }
 
   enum Category {
-    DECISION = 0,
-    SPENT = 1,
-    CHANGE_QUOTA = 2,
-    CHANGE_MANAGER = 3
+    DECISION = 0,       //0
+    SPENT = 1,          //1
+    CHANGE_QUOTA = 2,   //2
+    CHANGE_MANAGER = 3  //3
   }
 
   async function addResidents(contract: Condominium, count: number, accounts: SignerWithAddress[]) {
