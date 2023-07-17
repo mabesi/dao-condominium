@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import Footer from '../../components/Footer';
 import Alert from '../../components/Alert';
-//import topicRow from '../topics/topicRow';
+import TopicRow from './TopicRow';
 import { Topic, getTopics, removeTopic } from '../../services/Web3Service';
 import Loader from '../../components/Loader';
 import Pagination from '../../components/Pagination';
@@ -49,10 +49,7 @@ function Topics() {
         setError("");
 
         removeTopic(title)
-            .then(tx => {
-                navigate("/topics?tx=" + tx.hash);
-                setIsLoading(false);
-            })
+            .then(tx => navigate("/topics?tx=" + tx.hash))
             .catch(err => {
                 setError(err.message);
                 setIsLoading(false);
@@ -103,11 +100,11 @@ function Topics() {
                                     </thead>
                                     <tbody>
 
-                                        {/* {
+                                        {
                                             topics && topics.length
-                                            ? topics.map(topic => <topicRow key={topic.wallet} data={topic} onDelete={() => onDeletetopic(topic.wallet)} />)
+                                            ? topics.map(topic => <TopicRow key={topic.title} data={topic} onDelete={() => onDeleteTopic(topic.title)} />)
                                             : <></>
-                                        } */}
+                                        }
                                         
                                     </tbody>
                                     </table>

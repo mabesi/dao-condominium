@@ -193,23 +193,30 @@ export async function removeResident(wallet: string) : Promise<ethers.Transactio
 
 export async function getTopic(title: string) : Promise<Topic> {
     const cc = getContract();
-    return cc.getResident(title) as Topic;
+    return cc.getTopic(title) as Topic;
 }
 
 export async function getTopics(page: number = 1, pageSize: number = 10) : Promise<TopicPage> {
     const cc = getContract();
     const result = await cc.getTopics(page, pageSize) as TopicPage;
-    const topics = result.topics.filter(t => t.createdDate);
+    const topics = result.topics.filter(t => t.title);
     return {
         topics,
         total: result.total
     } as TopicPage;
 }
 
-export async function addTopic(title: string, residenceId: number) : Promise<ethers.Transaction> {
-    if (getProfile() === Profile.RESIDENT) throw new Error(`You do not have permission.`);
+export async function addTopic(topic: Topic) : Promise<ethers.Transaction> {
+    topic.amount = ethers.BigNumber.from(topic.amount || 0);
     const cc = getContractSigner();
-    return (await cc.addTopic(title, residenceId)) as ethers.Transaction;
+    return (await cc.addTopic(topic.title, topic.description, topic.category, topic.amount, topic.responsible)) as ethers.Transaction;
+}
+
+export async function editTopic(topicToEdit: string, description: string, amount: ethers.BigNumber, responsible: string) : Promise<ethers.Transaction> {
+    if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
+    amount = ethers.BigNumber.from(amount || 0);
+    const cc = getContractSigner();
+    return (await cc.editTopic(topicToEdit, description, amount, responsible)) as ethers.Transaction;
 }
 
 export async function removeTopic(title: string) : Promise<ethers.Transaction> {

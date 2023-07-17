@@ -7,6 +7,7 @@ import SwitchInput from '../../components/SwitchInput';
 import { Resident, addResident, isResident, isManager, doLogout, getResident, setCounselor, Profile } from '../../services/Web3Service';
 import { ApiResident, getApiResident, addApiResident, updateApiResident } from '../../services/ApiService';
 import Loader from '../../components/Loader';
+import { ethers } from 'ethers';
 
 function ResidentPage() {
 

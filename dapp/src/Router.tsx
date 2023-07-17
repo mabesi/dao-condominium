@@ -88,9 +88,9 @@ function Router() {
                     </CouncilRoute>
                 } />
                 <Route path='/topics/edit/:title' element={
-                    <CouncilRoute>
+                    <PrivateRoute>
                         <TopicPage />
-                    </CouncilRoute>
+                    </PrivateRoute>
                 } />
                 <Route path='/topics/new' element={
                     <PrivateRoute>

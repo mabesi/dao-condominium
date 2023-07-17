@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import Footer from '../../components/Footer';
-import SwitchInput from '../../components/SwitchInput';
-import { Topic, addTopic, isResident, isManager, doLogout, getTopic, Profile } from '../../services/Web3Service';
+import { Topic, addTopic, editTopic, getTopic, Profile, Status, Category, isManager } from '../../services/Web3Service';
 import Loader from '../../components/Loader';
+import TopicCategory from '../../components/TopicCategory';
 
 function TopicPage() {
 
@@ -30,6 +30,8 @@ function TopicPage() {
                     setMessage(err.message);
                     setIsLoading(false);
                 });            
+        } else {
+            topic.responsible = localStorage.getItem("account") || "";
         }
 
     }, [title]);
@@ -42,41 +44,28 @@ function TopicPage() {
         
         if (topic) {
             
-            setMessage("Connecting to wallet. Wait...");
+            setMessage("Saving the topic informations. Wait...");
 
-            // if (!title){
+            if (!title){
 
-            //     const promiseBlockchain = addTopic(Topic.wallet, Topic.residence);
-            //     // deveria ser apenas se a inclusão na blockchain ocorrer com sucesso
-            //     const promiseBackend = addApiTopic({...apiTopic, profile: Profile.Topic, wallet: Topic.wallet});
+                const promiseBlockchain = addTopic(topic)
+                    .then(tx => navigate("/topics?tx=" + tx.hash))
+                    .catch(err => setMessage(err.message));
 
-            //     Promise.all([promiseBlockchain,promiseBackend])
-            //         .then(results => navigate("/Topics?tx=" + results[0].hash))
-            //         .catch(err => setMessage(err.message));
+            } else {
 
-            // } else {
-
-            //     const promises = [];
-            //     const profile = Topic.isCounselor ? Profile.COUNSELOR : Profile.Topic;
-            //     if (apiTopic.profile !== profile) {
-            //         promises.push(setCounselor(Topic.wallet, Topic.isCounselor));
-            //     }
-
-            //     promises.push(updateApiTopic(wallet, {...apiTopic, profile, wallet}));
-                
-            //     Promise.all(promises)
-            //         .then(results => navigate("/Topics?tx=" + wallet))
-            //         //.then(results => navigate("/Topics/" + wallet)) // será o correto?
-            //         .catch(err => setMessage(err.message));
-            // }
+                editTopic(title, topic.description, topic.amount, topic.responsible)
+                    .then(tx => navigate("/topics?tx=" + tx.hash))
+                    .catch(err => setMessage(err.message));
+            }
         }
     }
 
-    // function getNextPayment() {
-    //     const dateMs = Topic.nextPayment * 1000;
-    //     const text = !dateMs ? "Never Payed" : new Date(dateMs).toDateString();
-    //     return text;
-    // }
+    function getDate(timestamp: number) {
+        const dateMs = timestamp * 1000;
+        if (!dateMs) return "";
+        return new Date(dateMs).toDateString();
+    }
 
     // function getNextPaymentClass() {
     //     let className = "input-group input-group-outline ";
@@ -86,6 +75,45 @@ function TopicPage() {
     //     else
     //         return className + "is-valid";
     // }
+
+    function getStatus() : string {
+        switch (topic.status) {
+            case Status.APPROVED: return "Approved";
+            case Status.DENIED: return "Denied";
+            case Status.DELETED: return "Deleted";
+            case Status.SPENT: return "Spent";
+            case Status.VOTING: return "Voting";
+            default: return "Idle";
+
+        }
+    }
+
+    function showResponsible() : boolean {
+        const category = parseInt(`${topic.category}`);
+        return [Category.SPENT, Category.CHANGE_MANAGER].includes(category);
+    }
+
+    function showAmount() : boolean {
+        const category = parseInt(`${topic.category}`);
+        return [Category.SPENT, Category.CHANGE_QUOTA].includes(category);
+    }
+
+    function isClosed() : boolean {
+        const status = parseInt(`${topic.status || 0}`);
+        return [Status.APPROVED, Status.DENIED, Status.DELETED, Status.SPENT].includes(status);
+    }
+
+    function getAmount() {
+        return topic.amount ? topic.amount.toString() : "0";
+    }
+
+    function descriptionIsDisabled() {
+        return !!title && (topic.status !== Status.IDLE || !isManager());
+    }
+
+    function isDisabled() {
+        return !!title && (topic.status !== Status.IDLE || !isManager());
+    }
 
     return (
         <>
@@ -107,12 +135,12 @@ function TopicPage() {
                             {
                                 isLoading ? <Loader /> : <></>
                             }
-                            {/* <div className="row ms-3">
+                            <div className="row ms-3">
                                 <div className="col-md-6 mb-3">
                                     <div className="form-group">
-                                        <label htmlFor="wallet">Wallet Address:</label>
+                                        <label htmlFor="title">Title:</label>
                                         <div className="input-group input-group-outline">
-                                            <input type="text" className="form-control" id="wallet" value={Topic.wallet || ""} placeholder="0x00" onChange={onTopicChange} disabled={!!wallet} />
+                                            <input type="text" className="form-control" id="title" value={topic.title || ""} onChange={onTopicChange} disabled={!!title} />
                                         </div>
                                     </div>
                                 </div>
@@ -120,52 +148,22 @@ function TopicPage() {
                             <div className="row ms-3">
                                 <div className="col-md-6 mb-3">
                                     <div className="form-group">
-                                        <label htmlFor="residence">Residence Id (block + apartment):</label>
+                                        <label htmlFor="description">Description:</label>
                                         <div className="input-group input-group-outline">
-                                            <input type="number" className="form-control" id="residence" value={Topic.residence || ""} placeholder="1101" onChange={onTopicChange}  disabled={!!wallet} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="row ms-3">
-                                <div className="col-md-6 mb-3">
-                                    <div className="form-group">
-                                        <label htmlFor="name">Name:</label>
-                                        <div className="input-group input-group-outline">
-                                            <input type="text" className="form-control" id="name" value={apiTopic.name || ""} onChange={onApiTopicChange}  />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="row ms-3">
-                                <div className="col-md-6 mb-3">
-                                    <div className="form-group">
-                                        <label htmlFor="phone">Phone:</label>
-                                        <div className="input-group input-group-outline">
-                                            <input type="text" className="form-control" id="phone" value={apiTopic.phone || ""} placeholder="+55xx999998888" onChange={onApiTopicChange}  />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="row ms-3">
-                                <div className="col-md-6 mb-3">
-                                    <div className="form-group">
-                                        <label htmlFor="email">E-mail:</label>
-                                        <div className="input-group input-group-outline">
-                                            <input type="text" className="form-control" id="email" value={apiTopic.email || ""} placeholder="email@domain.com" onChange={onApiTopicChange}  />
+                                            <input type="text" className="form-control" id="description" value={topic.description || ""} onChange={onTopicChange}  disabled={isDisabled()} />
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             {
-                                wallet
+                                title
                                 ? (
                                     <div className="row ms-3">
                                         <div className="col-md-6 mb-3">
                                             <div className="form-group">
-                                                <label htmlFor="nextPayment">Next Payment:</label>
-                                                <div className={getNextPaymentClass()}>
-                                                    <input type="text" className="form-control" id="nextPayment" value={getNextPayment()} disabled={true} />
+                                                <label htmlFor="status">Status:</label>
+                                                <div className="input-group input-group-outline">
+                                                    <input type="text" className="form-control" id="status" value={getStatus()} disabled={true}  />
                                                 </div>
                                             </div>
                                         </div>
@@ -173,31 +171,113 @@ function TopicPage() {
                                 )
                                 : <></>
                             }
- 
+                            <div className="row ms-3">
+                                <div className="col-md-6 mb-3">
+                                    <div className="form-group">
+                                        <label htmlFor="category">Category:</label>
+                                        <div className="input-group input-group-outline">
+                                            <TopicCategory value={topic.category} onChange={onTopicChange} disabled={!!title} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             {
-                                isManager() && wallet
+                                showResponsible()
                                 ? (
                                     <div className="row ms-3">
                                         <div className="col-md-6 mb-3">
                                             <div className="form-group">
-                                                <SwitchInput id='isCounselor' isChecked={Topic.isCounselor} text='Is Counselor?' onChange={onTopicChange} />
+                                                <label htmlFor="responsible">Responsible:</label>
+                                                <div className="input-group input-group-outline">
+                                                    <input type="text" className="form-control" id="responsible" value={topic.responsible || ""} placeholder="0x00..." onChange={onTopicChange} disabled={isDisabled()} />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 )
                                 : <></>
-                            } */}
-                            <div className="row ms-3">
-                                <div className="col-md-12 mb-3">
-                                    <button className="btn bg-gradient-dark me-2" onClick={btnSaveClick}>
-                                        <i className="material-icons opacity-10 me-2" >save</i>
-                                        Save Topic
-                                    </button>
-                                    <span className="text-danger">
-                                        {message}
-                                    </span>
-                                </div>
-                            </div>
+                            }
+                            {
+                                showAmount()
+                                ? (
+                                    <div className="row ms-3">
+                                        <div className="col-md-6 mb-3">
+                                            <div className="form-group">
+                                                <label htmlFor="amount">Amount (wei):</label>
+                                                <div className="input-group input-group-outline">
+                                                    <input type="number" className="form-control" id="amount" value={getAmount()} onChange={onTopicChange} disabled={isDisabled()} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                                : <></>
+                            }
+                            {
+                                title
+                                ? (
+                                    <div className="row ms-3">
+                                        <div className="col-md-6 mb-3">
+                                            <div className="form-group">
+                                                <label htmlFor="createdDate">Created Date:</label>
+                                                <div className="input-group input-group-outline">
+                                                    <input type="text" className="form-control" id="createdDate" value={getDate(topic.createdDate || 0)} disabled={true} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                                : <></>
+                            }
+                            {
+                                isClosed() || topic.status === Status.VOTING
+                                ? (
+                                    <div className="row ms-3">
+                                        <div className="col-md-6 mb-3">
+                                            <div className="form-group">
+                                                <label htmlFor="startDate">Start Date:</label>
+                                                <div className="input-group input-group-outline">
+                                                    <input type="text" className="form-control" id="startDate" value={getDate(topic.startDate || 0)} disabled={true} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                                : <></>
+                            }
+                            {
+                                isClosed()
+                                ? (
+                                    <div className="row ms-3">
+                                        <div className="col-md-6 mb-3">
+                                            <div className="form-group">
+                                                <label htmlFor="endDate">End Date:</label>
+                                                <div className="input-group input-group-outline">
+                                                    <input type="text" className="form-control" id="endDate" value={getDate(topic.endDate || 0)} disabled={true} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                                : <></>
+                            }
+                            {
+                                !title || (isManager() && topic.status === Status.IDLE)
+                                ? (
+                                    <div className="row ms-3">
+                                        <div className="col-md-12 mb-3">
+                                            <button className="btn bg-gradient-dark me-2" onClick={btnSaveClick}>
+                                                <i className="material-icons opacity-10 me-2" >save</i>
+                                                Save Topic
+                                            </button>
+                                            <span className="text-danger">
+                                                {message}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )
+                                : <></>
+                            }
                         </div>
                     </div>
                     </div>
