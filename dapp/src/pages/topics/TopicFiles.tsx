@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Status } from "../../services/Web3Service";
 import Loader from "../../components/Loader";
 import TopicFileRow from './TopicFileRow';
+import { uploadTopicFile } from '../../services/ApiService';
 
 type Props = {
     title: string;
@@ -15,21 +16,49 @@ type Props = {
 function TopicFiles(props: Props) {
 
     //const navigate = useNavigate();
-    //const [message, setMessage] = useState<string>("");
+    const [uploadMessage, setUploadMessage] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [files, setFiles] = useState<string[]>(["image01.jpg","document.pdf"]);
+    const [files, setFiles] = useState<string[]>([]);
+    const [newFile, setNewFile] = useState<File>();
 
     //function useQuery() {
     //    return new URLSearchParams(useLocation().search);
     //}
     //const query = useQuery();
 
-    //useEffect(() => {
-    //
-    //},[]);
+    useEffect(() => {
+        loadFiles();
+    },[]);
 
     function onDeleteTopicFile(filename: string) {
         alert(filename);
+    }
+
+    function onFileChange(evt: React.ChangeEvent<HTMLInputElement>) {
+        if (evt.target.files) {
+            setNewFile(evt.target.files[0]);
+        }
+    }
+
+    function loadFiles() {
+
+    }
+
+    function btnUploadClick() {
+        if (!newFile) return;
+        setIsLoading(true);
+        setUploadMessage("Uploading the file. Wait...");
+        uploadTopicFile(props.title, newFile)
+            .then(() => {
+                setNewFile(undefined);
+                loadFiles();
+                setUploadMessage("");
+                setIsLoading(false);
+            })
+            .catch(err => {
+                setUploadMessage(err.response ? err.response : err.message);
+                setIsLoading(false);
+            })
     }
 
     return (
@@ -62,20 +91,40 @@ function TopicFiles(props: Props) {
                             {
                                 files && files.length
                                 ? files.map(file => <TopicFileRow key={file} filename={file} topicTitle={props.title} status={props.status} onDelete={() => onDeleteTopicFile(file)} />)
-                                : <></>
+                                : (
+                                    <tr>
+                                        <td colSpan={2}><span className='ms-3'>There are no files for this topic.</span></td>
+                                    </tr>
+                                )
                             }
                             
                         </tbody>
                         </table>
+                        <hr />
                     </div>
-                    <div className="row ms-2">
-                        <div className="col-md-12 mb-3">
-                            <a className="btn bg-gradient-dark me-2"  href="/topics/new" >
-                                <i className="material-icons opacity-10 me-2" >add</i>
-                                Upload File
-                            </a>
-                        </div>
-                    </div>
+                    {
+                        props.status === Status.IDLE
+                        ? (
+                            <div className="row ms-3 mb-3">
+                                <div className="col-md-6 mb-3">
+                                    <div className="form-group">
+                                        <h6>Upload a new file</h6>
+                                        <div className="input-group input-group-outline">
+                                            <input type="file" className="form-control" id="newFile" onChange={onFileChange} />
+                                            <button className="btn bg-gradient-dark mb-0"  onClick={btnUploadClick}>
+                                                <i className='material-icons opacity-10 me-2' >cloud_upload</i>
+                                                Upload
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="col-md-6 mt-5 text-danger">
+                                    {uploadMessage}
+                                </div>
+                            </div>
+                        )
+                        : <></>
+                    }
                 </div>
             </div>
             </div>

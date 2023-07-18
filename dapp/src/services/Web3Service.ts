@@ -91,11 +91,15 @@ function getContractSigner(provider?: ethers.providers.Web3Provider) : ethers.Co
     return contract.connect(signer);
 }
 
-export function isResident() : boolean {
+export function hasResidentPermissions() : boolean {
     return parseInt(localStorage.getItem("profile") || "0") === Profile.RESIDENT;
 }
 
-export function isManager() : boolean {
+export function hasCounselorPermissions() : boolean {
+    return parseInt(localStorage.getItem("profile") || "0") !== Profile.RESIDENT;
+}
+
+export function hasManagerPermissions() : boolean {
     return parseInt(localStorage.getItem("profile") || "0") === Profile.MANAGER;
 }
 

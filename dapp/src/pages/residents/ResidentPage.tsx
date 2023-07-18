@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import Footer from '../../components/Footer';
 import SwitchInput from '../../components/SwitchInput';
-import { Resident, addResident, isResident, isManager, doLogout, getResident, setCounselor, Profile } from '../../services/Web3Service';
+import { Resident, addResident, hasResidentPermissions, hasManagerPermissions, doLogout, getResident, setCounselor, Profile } from '../../services/Web3Service';
 import { ApiResident, getApiResident, addApiResident, updateApiResident } from '../../services/ApiService';
 import Loader from '../../components/Loader';
 import { ethers } from 'ethers';
@@ -19,7 +19,7 @@ function ResidentPage() {
     const [apiResident, setApiResident] = useState<ApiResident>({} as ApiResident);
 
     useEffect(() => {
-        if (isResident()) {
+        if (hasResidentPermissions()) {
             doLogout();
             navigate("/");
         }
@@ -190,7 +190,7 @@ function ResidentPage() {
                             }
  
                             {
-                                isManager() && wallet
+                                hasManagerPermissions() && wallet
                                 ? (
                                     <div className="row ms-3">
                                         <div className="col-md-6 mb-3">

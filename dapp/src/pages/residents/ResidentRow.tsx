@@ -2,7 +2,7 @@
 //import { useEffect, useState } from 'react';
 //import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
-import { Resident, isManager } from '../../services/Web3Service';
+import { Resident, hasManagerPermissions } from '../../services/Web3Service';
 
 type Props = {
     data: Resident;
@@ -65,7 +65,7 @@ function ResidentRow(props: Props) {
             </td>
             <td>
                 {
-                    isManager()
+                    hasManagerPermissions()
                     ? (
                         <>
                             <a href={"/residents/edit/" + props.data.wallet} className="btn btn-info btn-sm me-1" >

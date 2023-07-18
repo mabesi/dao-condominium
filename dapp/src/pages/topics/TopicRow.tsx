@@ -2,7 +2,7 @@
 //import { useEffect, useState } from 'react';
 //import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
-import { Category, Status, Topic, isManager } from '../../services/Web3Service';
+import { Category, Status, Topic, hasManagerPermissions } from '../../services/Web3Service';
 
 type Props = {
     data: Topic;
@@ -110,7 +110,7 @@ function TopicRow(props: Props) {
                     <i className='material-icons text-sm' >visibility</i>
                 </a>
                 {
-                    isManager() && props.data.status === Status.IDLE
+                    hasManagerPermissions() && props.data.status === Status.IDLE
                     ? (
                         <>
                             <a href="#" className="btn btn-danger btn-sm me-1" onClick={btnDeleteClick} >

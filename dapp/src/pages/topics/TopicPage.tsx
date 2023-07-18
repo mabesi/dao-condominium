@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import Footer from '../../components/Footer';
-import { Topic, addTopic, editTopic, getTopic, Profile, Status, Category, isManager } from '../../services/Web3Service';
+import { Topic, addTopic, editTopic, getTopic, Profile, Status, Category, hasManagerPermissions } from '../../services/Web3Service';
 import Loader from '../../components/Loader';
 import TopicCategory from '../../components/TopicCategory';
 import TopicFiles from './TopicFiles';
@@ -109,11 +109,11 @@ function TopicPage() {
     }
 
     function descriptionIsDisabled() {
-        return !!title && (topic.status !== Status.IDLE || !isManager());
+        return !!title && (topic.status !== Status.IDLE || !hasManagerPermissions());
     }
 
     function isDisabled() {
-        return !!title && (topic.status !== Status.IDLE || !isManager());
+        return !!title && (topic.status !== Status.IDLE || !hasManagerPermissions());
     }
 
     return (
@@ -263,7 +263,7 @@ function TopicPage() {
                                 : <></>
                             }
                             {
-                                !title || (isManager() && topic.status === Status.IDLE)
+                                !title || (hasManagerPermissions() && topic.status === Status.IDLE)
                                 ? (
                                     <div className="row ms-3">
                                         <div className="col-md-12 mb-3">

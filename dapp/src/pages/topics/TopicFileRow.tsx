@@ -1,4 +1,4 @@
-import { Status, isManager } from '../../services/Web3Service';
+import { Status, hasManagerPermissions } from '../../services/Web3Service';
 import { keccak256, toUtf8Bytes } from 'ethers/lib/utils';
 
 
@@ -38,7 +38,7 @@ function TopicFileRow(props: Props) {
                     <i className='material-icons text-sm' >cloud_download</i>
                 </a>
                 {
-                    isManager() && props.status === Status.IDLE
+                    hasManagerPermissions() && props.status === Status.IDLE
                     ? (
                         <>
                             <a href="#" className="btn btn-danger btn-sm me-1 mb-0" onClick={btnDeleteClick} >
