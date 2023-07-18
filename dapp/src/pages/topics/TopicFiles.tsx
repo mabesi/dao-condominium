@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Status } from "../../services/Web3Service";
 import Loader from "../../components/Loader";
 import TopicFileRow from './TopicFileRow';
-import { uploadTopicFile } from '../../services/ApiService';
+import { uploadTopicFile, getTopicFiles, deleteTopicFiles } from '../../services/ApiService';
 
 type Props = {
     title: string;
@@ -31,7 +31,19 @@ function TopicFiles(props: Props) {
     },[]);
 
     function onDeleteTopicFile(filename: string) {
-        alert(filename);
+        if (props.status !== Status.IDLE) return setUploadMessage(`You cannot delete this file.`);
+        setIsLoading(true);
+        setUploadMessage("Deleting the file. Wait...");
+        deleteTopicFiles(props.title, filename)
+            .then(() => {
+                setUploadMessage("");
+                setIsLoading(false);
+                loadFiles();
+            })
+            .catch(err => {
+                setUploadMessage(err.response ? err.response.data : err.message);
+                setIsLoading(false);
+            })
     }
 
     function onFileChange(evt: React.ChangeEvent<HTMLInputElement>) {
@@ -41,7 +53,17 @@ function TopicFiles(props: Props) {
     }
 
     function loadFiles() {
-
+        setIsLoading(true);
+        getTopicFiles(props.title)
+            .then(files => {
+                setFiles(files);
+                setIsLoading(false);
+            })
+            .catch(err => {
+                setFiles([]);
+                setUploadMessage(err.response ? err.response.data : err.message);
+                setIsLoading(false);
+            })
     }
 
     function btnUploadClick() {
@@ -56,7 +78,7 @@ function TopicFiles(props: Props) {
                 setIsLoading(false);
             })
             .catch(err => {
-                setUploadMessage(err.response ? err.response : err.message);
+                setUploadMessage(err.response ? err.response.data : err.message);
                 setIsLoading(false);
             })
     }

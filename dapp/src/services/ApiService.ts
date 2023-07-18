@@ -50,3 +50,14 @@ export async function uploadTopicFile(topicTitle: string, file: File) {
         }
     })
 }
+
+export async function getTopicFiles(topicTitle: string) : Promise<string[]> {
+    const hash = keccak256(toUtf8Bytes(topicTitle));
+    const response = await axios.get(`${API_URL}/topicfiles/${hash}`);
+    return response.data as string[];
+}
+
+export async function deleteTopicFiles(topicTitle: string, filename: string) : Promise<void> {
+    const hash = keccak256(toUtf8Bytes(topicTitle));
+    await axios.delete(`${API_URL}/topicfiles/${hash}/${filename}`);
+}
