@@ -123,8 +123,33 @@ npx tsc --init
     - No backend, criar rota e controller para receber, recriar e comparar o secret (msg assinada)
     - Usar JWT para gerar o token de autenticação, com base na SECRET e no EXPIRES
 
+- Upload de Arquivos
+    - Instalar o multer (pacote de manipulação de arquivos)
+        $ npm i multer
+    - e seus types
+        $ npm i -D @types/multer
+    - Criar a pasta "files" na raiz do backend
+        - Incluir no gitignore os arquivos da pasta
+            files/*
+    - No app.ts:
+        - Importar o multer
+            import multer from 'multer'
+        - Inicializar o middleware de arquivos
+            const uploadMiddleware = multer({ dest: "files"})
+            app.use('rotaprincipal',authmid, uploadMiddleware.single("key"), rotaespecífica)
+    - Criar arquivo com rotas específicas para cada uploader
+    - Criar um controller com funções para cada uploader
+    - Ajustar authentication middleware para aceitar token na query string, para download via browser
+    - No controller:
+        - importar "fs" e "path" para trabalhar com arquivos e caminhos
+        - importar "keccak256" de "ethers" para trabalhar com hash de strings
+
+        
+            
 
 
+
+    
 
 
 

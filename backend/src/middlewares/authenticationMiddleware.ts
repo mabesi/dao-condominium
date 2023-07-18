@@ -6,12 +6,13 @@ const JWT_SECRET = `${process.env.JWT_SECRET}`;
 export default (req: Request, res: Response, next: NextFunction) => {
     
     const token = req.headers['authorization'];
+    const queryToken = req.query.token as string;
 
-    if (token) {
+    if (token || queryToken) {
         
         try {
 
-            const decoded = jwt.verify(token, JWT_SECRET);
+            const decoded = jwt.verify(token || queryToken, JWT_SECRET);
             console.log(decoded);
             
             if (decoded) {
