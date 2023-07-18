@@ -6,6 +6,7 @@ import Footer from '../../components/Footer';
 import { Topic, addTopic, editTopic, getTopic, Profile, Status, Category, isManager } from '../../services/Web3Service';
 import Loader from '../../components/Loader';
 import TopicCategory from '../../components/TopicCategory';
+import TopicFiles from './TopicFiles';
 
 function TopicPage() {
 
@@ -282,7 +283,11 @@ function TopicPage() {
                     </div>
                     </div>
                 </div>
-                
+                {
+                    title
+                    ? <TopicFiles title={title} status={topic.status} />
+                    : <></>
+                }
                 <Footer />
                 </div>
             </main>

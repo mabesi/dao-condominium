@@ -1,12 +1,12 @@
 import express, { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { keccak256 } from 'ethers';
+import { keccak256, toUtf8Bytes } from 'ethers';
 
 function checkTitleOrHash(hashOrTitle: string) : string {
     if (!hashOrTitle) throw new Error(`The hash or title is required`);
     const regex = /^[a-f0-9]{64}$/gi;
-    if (!regex.test(hashOrTitle)) return keccak256(hashOrTitle);
+    if (!regex.test(hashOrTitle)) return keccak256(toUtf8Bytes(hashOrTitle));
     return hashOrTitle;
 }
 
