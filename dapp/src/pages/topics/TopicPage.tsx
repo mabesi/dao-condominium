@@ -26,11 +26,14 @@ function TopicPage() {
 
             getTopic(title)
                 .then(topic => {
-                    const newT = {...topic};
-                    newT.status = Status.APPROVED;
-                    newT.endDate = Date.now();
-                    setTopic(newT);
-                    //setTopic(topic);
+
+                    // Trecho usado para simular toópico aprovado
+                    // const newT = {...topic};
+                    // newT.status = Status.APPROVED;
+                    // newT.endDate = Date.now();
+                    // setTopic(newT);
+
+                    setTopic(topic);
                     if (topic.status === Status.VOTING)
                         return getVotes(topic.title);
                     else
