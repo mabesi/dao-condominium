@@ -63,11 +63,6 @@ function Router() {
         <BrowserRouter>
             <Routes>
                 <Route path='/' element={<Login />} />
-                <Route path='/transfer' element={
-                    <ManagerRoute>
-                        <Transfer />
-                    </ManagerRoute>
-                } />
                 <Route path='/settings' element={
                     <ManagerRoute>
                         <Settings />

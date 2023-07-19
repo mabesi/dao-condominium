@@ -77,14 +77,6 @@ function Sidebar() {
                     ? (
                         <>
                             <li className="nav-item">
-                            <a className={getActiveClass("transfer")} href="/transfer">
-                                <div className="text-white text-center me-2 d-flex align-items-center justify-content-center">
-                                <i className="material-icons opacity-10">payments</i>
-                                </div>
-                                <span className="nav-link-text ms-1">Transfer</span>
-                            </a>
-                            </li>
-                            <li className="nav-item">
                             <a className={getActiveClass("settings")} href="/settings">
                                 <div className="text-white text-center me-2 d-flex align-items-center justify-content-center">
                                 <i className="material-icons opacity-10">settings</i>
