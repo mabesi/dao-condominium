@@ -142,7 +142,7 @@ npx tsc --init
     - Ajustar authentication middleware para aceitar token na query string, para download via browser
     - No controller:
         - importar "fs" e "path" para trabalhar com arquivos e caminhos
-        - importar "keccak256" de "ethers" para trabalhar com hash de strings
+        - importar "keccak256" e "toUtf8Bytes" de "ethers" para trabalhar com hash de strings
 
         
             

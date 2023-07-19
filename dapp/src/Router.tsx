@@ -2,6 +2,7 @@ import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Transfer from './pages/Transfer';
 import Settings from './pages/Settings';
+import Quota from './pages/Quota';
 import Residents from './pages/residents';
 import Topics from './pages/topics';
 import ResidentPage from './pages/residents/ResidentPage';
@@ -101,6 +102,11 @@ function Router() {
                     <PrivateRoute>
                         <Topics />
                     </PrivateRoute>
+                } />
+                <Route path='/quota' element={
+                    <ResidentRoute>
+                        <Quota />
+                    </ResidentRoute>
                 } />
             </Routes>
         </BrowserRouter>

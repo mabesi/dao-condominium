@@ -57,7 +57,9 @@ function Settings() {
                                 <div className="col-md-6 mb-3">
                                     <div className="form-group">
                                         <label htmlFor="adapter">Adapter Address:</label>
-                                        <input type="text" className="form-control" id="adapter" value={process.env.REACT_APP_ADAPTER_ADDRESS} disabled={true} />
+                                        <div className="input-group input-group-outline">
+                                            <input type="text" className="form-control" id="adapter" value={process.env.REACT_APP_ADAPTER_ADDRESS} disabled={true} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

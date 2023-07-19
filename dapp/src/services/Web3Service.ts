@@ -234,9 +234,33 @@ export async function upgrade(contractAddress: string) : Promise<ethers.Transact
     const cc = getContractSigner();
     return (await cc.upgrade(contractAddress)) as ethers.Transaction;
 }
-
+    
 export async function setCounselor(wallet: string, isEntering: boolean) : Promise<ethers.Transaction> {
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
     const cc = getContractSigner();
     return (await cc.setCounselor(wallet, isEntering)) as ethers.Transaction;
+}
+
+export async function openVoting(topicTitle: string) : Promise<ethers.Transaction> {
+    if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
+    const cc = getContractSigner();
+    return (await cc.openVoting(topicTitle)) as ethers.Transaction;
+}
+
+export async function closeVoting(topicTitle: string) : Promise<ethers.Transaction> {
+    if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
+    const cc = getContractSigner();
+    return (await cc.closeVoting(topicTitle)) as ethers.Transaction;
+}
+
+export async function getQuota() : Promise<ethers.BigNumber> {
+    const cc = getContract();
+    return cc.getQuota() as ethers.BigNumber;
+}
+
+export async function payQuota(residenceId: number, value: ethers.BigNumber) : Promise<ethers.Transaction> {
+    // Verificação de perfil com problema: e se o counselor ou o manager forem resident?
+    if (getProfile() !== Profile.RESIDENT) throw new Error(`You do not have permission.`);
+    const cc = getContractSigner();
+    return (await cc.payQuota(residenceId, { value })) as ethers.Transaction;
 }

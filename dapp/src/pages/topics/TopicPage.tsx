@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import Footer from '../../components/Footer';
-import { Topic, addTopic, editTopic, getTopic, Profile, Status, Category, hasManagerPermissions } from '../../services/Web3Service';
+import { Topic, addTopic, editTopic, getTopic, Profile, Status, Category, hasManagerPermissions, openVoting, closeVoting } from '../../services/Web3Service';
 import Loader from '../../components/Loader';
 import TopicCategory from '../../components/TopicCategory';
 import TopicFiles from './TopicFiles';
@@ -49,7 +49,7 @@ function TopicPage() {
 
             if (!title){
 
-                const promiseBlockchain = addTopic(topic)
+                addTopic(topic)
                     .then(tx => navigate("/topics?tx=" + tx.hash))
                     .catch(err => setMessage(err.message));
 
@@ -114,6 +114,24 @@ function TopicPage() {
 
     function isDisabled() {
         return !!title && (topic.status !== Status.IDLE || !hasManagerPermissions());
+    }
+
+    function btnOpenVoteClick() {
+        if (topic && title) {
+            setMessage("Connecting to MetaMask. Wait...");
+            openVoting(title)
+                .then(tx => navigate("/topics?tx=" + tx.hash))
+                .catch(err => setMessage(err.message));  
+        }
+    }
+
+    function btnCloseVoteClick() {
+        if (topic && title) {
+            setMessage("Connecting to MetaMask. Wait...");
+            closeVoting(title)
+                .then(tx => navigate("/topics?tx=" + tx.hash))
+                .catch(err => setMessage(err.message));  
+        }
     }
 
     return (
@@ -262,23 +280,43 @@ function TopicPage() {
                                 )
                                 : <></>
                             }
-                            {
-                                !title || (hasManagerPermissions() && topic.status === Status.IDLE)
-                                ? (
                                     <div className="row ms-3">
                                         <div className="col-md-12 mb-3">
-                                            <button className="btn bg-gradient-dark me-2" onClick={btnSaveClick}>
-                                                <i className="material-icons opacity-10 me-2" >save</i>
-                                                Save Topic
-                                            </button>
+                                            {
+                                                !title || (hasManagerPermissions() && topic.status === Status.IDLE)
+                                                ? (
+                                                    <button className="btn bg-gradient-dark me-2" onClick={btnSaveClick}>
+                                                        <i className="material-icons opacity-10 me-2" >save</i>
+                                                        Save Topic
+                                                    </button>
+                                                )
+                                                : <></>
+                                            }
+                                            {
+                                                (hasManagerPermissions() && topic.status === Status.IDLE)
+                                                ? (
+                                                    <button className="btn btn-success me-2" onClick={btnOpenVoteClick}>
+                                                        <i className="material-icons opacity-10 me-2" >lock_open</i>
+                                                        Open Voting
+                                                    </button>
+                                                )
+                                                : <></>
+                                            }
+                                            {
+                                                (hasManagerPermissions() && topic.status === Status.VOTING)
+                                                ? (
+                                                    <button className="btn btn-danger me-2" onClick={btnCloseVoteClick}>
+                                                        <i className="material-icons opacity-10 me-2" >lock</i>
+                                                        Close Voting
+                                                    </button>
+                                                )
+                                                : <></>
+                                            }
                                             <span className="text-danger">
                                                 {message}
                                             </span>
                                         </div>
                                     </div>
-                                )
-                                : <></>
-                            }
                         </div>
                     </div>
                     </div>
