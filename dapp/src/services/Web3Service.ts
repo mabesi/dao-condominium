@@ -13,7 +13,7 @@ export enum Options {
     YES = 1,
     NO = 2,
     ABSTENTION = 3
-  }
+}
 
 export enum Status {
     IDLE = 0,
@@ -22,14 +22,14 @@ export enum Status {
     DENIED = 3,
     DELETED = 4,
     SPENT = 5
-  }
+}
 
 export enum Category {
     DECISION = 0,
     SPENT = 1,
     CHANGE_QUOTA = 2,
     CHANGE_MANAGER = 3
-  }
+}
 
 export type LoginResult = {
     account: string;
@@ -65,6 +65,13 @@ export type Topic = {
 export type TopicPage = {
     topics: Topic[];
     total: ethers.BigNumber;
+}
+
+export type Vote = {
+    resident: string;
+    residence: number;
+    timestamp: number;
+    option: Options;
 }
 
 const ADAPTER_ADDRESS = `${process.env.REACT_APP_ADAPTER_ADDRESS}`;
@@ -253,6 +260,16 @@ export async function closeVoting(topicTitle: string) : Promise<ethers.Transacti
     return (await cc.closeVoting(topicTitle)) as ethers.Transaction;
 }
 
+export async function getVotes(topicTitle: string) : Promise<Vote[]> {
+    const cc = getContract();
+    return cc.getVotes(topicTitle) as Vote[];
+}
+
+export async function vote(topicTitle: string, option: Options) : Promise<ethers.Transaction> {
+    const cc = getContractSigner();
+    return (await cc.vote(topicTitle, option)) as ethers.Transaction;
+}
+
 export async function getQuota() : Promise<ethers.BigNumber> {
     const cc = getContract();
     return cc.getQuota() as ethers.BigNumber;
@@ -263,4 +280,17 @@ export async function payQuota(residenceId: number, value: ethers.BigNumber) : P
     if (getProfile() !== Profile.RESIDENT) throw new Error(`You do not have permission.`);
     const cc = getContractSigner();
     return (await cc.payQuota(residenceId, { value })) as ethers.Transaction;
+}
+
+export async function transfer(topicTitle: string, amount: ethers.BigNumber) : Promise<ethers.Transaction> {
+    if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
+    const cc = getContractSigner();
+    return (await cc.transfer(topicTitle, amount)) as ethers.Transaction;
+}
+
+export async function getBalance(address?: string) : Promise<string> {
+    if (!address) address = await getAddress();
+    const provider = getProvider();
+    const balance = await provider.getBalance(address);
+    return ethers.utils.formatEther(balance);
 }

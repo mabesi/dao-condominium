@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import Footer from '../../components/Footer';
-import { Topic, addTopic, editTopic, getTopic, Profile, Status, Category, hasManagerPermissions, openVoting, closeVoting } from '../../services/Web3Service';
+import { Topic, addTopic, editTopic, getTopic, Profile, Status, Category, hasManagerPermissions, openVoting, closeVoting, vote, Vote, getVotes, Options, transfer } from '../../services/Web3Service';
 import Loader from '../../components/Loader';
 import TopicCategory from '../../components/TopicCategory';
 import TopicFiles from './TopicFiles';
+import { ethers } from 'ethers';
 
 function TopicPage() {
 
@@ -15,6 +16,7 @@ function TopicPage() {
     const [message, setMessage] = useState<String>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [topic, setTopic] = useState<Topic>({} as Topic);
+    const [votes, setVotes] = useState<Vote[]>([]);
 
     useEffect(() => {
 
@@ -24,7 +26,18 @@ function TopicPage() {
 
             getTopic(title)
                 .then(topic => {
-                    setTopic(topic);
+                    const newT = {...topic};
+                    newT.status = Status.APPROVED;
+                    newT.endDate = Date.now();
+                    setTopic(newT);
+                    //setTopic(topic);
+                    if (topic.status === Status.VOTING)
+                        return getVotes(topic.title);
+                    else
+                        setIsLoading(false);
+                })
+                .then(votes => {
+                    setVotes(votes || []);
                     setIsLoading(false);
                 })
                 .catch(err => {
@@ -130,7 +143,54 @@ function TopicPage() {
             setMessage("Connecting to MetaMask. Wait...");
             closeVoting(title)
                 .then(tx => navigate("/topics?tx=" + tx.hash))
+                .catch(err => setMessage(err.message));
+        }
+    }
+
+    function showVoting() {
+        return ![Status.DELETED, Status.IDLE].includes(topic.status || Status.DELETED) && votes && votes.length;
+    }
+
+    function alreadyVoted() {
+        return votes && votes.length && votes.find(v => v.resident.toUpperCase() === (localStorage.getItem("account") || "").toUpperCase());
+    }
+
+    function btnVoteClick(option: Options) {
+
+        if (title && topic && topic.status === Status.VOTING) {
+
+            setMessage("Connecting to MetaMask. Wait...");
+
+            let text = "";
+
+            switch(option) {
+                case Options.YES: text = "YES"; break;
+                case Options.NO: text = "NO"; break;
+                default: text = "ABSTENTION";
+            }
+            
+            if (window.confirm(`Are you sure to vote as ${text}?`)) {
+                vote(title, option)
+                .then(tx => navigate("/topics?tx=" + tx.hash))
                 .catch(err => setMessage(err.message));  
+            } else {
+                setMessage("");
+            }
+
+        }        
+    }
+
+    function btnTransferClick() {
+
+        if (title && topic && topic.status === Status.APPROVED ) {
+            setMessage("Connecting to MetaMask. Wait...");
+            if (window.confirm(`Are you sure to transfer ${ethers.utils.formatEther(topic.amount)} ETH for ${topic.responsible}?`)) {
+                transfer(title, topic.amount)
+                    .then(tx => navigate("/topics?tx=" + tx.hash))
+                    .catch(err => setMessage(err.message));
+            } else {
+                setMessage("");
+            }
         }
     }
 
@@ -280,6 +340,22 @@ function TopicPage() {
                                 )
                                 : <></>
                             }
+                            {
+                                showVoting()
+                                ? (
+                                    <div className="row ms-3">
+                                        <div className="col-md-6 mb-3">
+                                            <div className="form-group">
+                                                <label htmlFor="voting">Voting:</label>
+                                                <div className="input-group input-group-outline">
+                                                    <input type="text" className="form-control" id="voting" value={`${votes.length} votes (${votes.filter(v => v.option === Options.YES).length} YES)`} disabled={true} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                                : <></>
+                            }
                                     <div className="row ms-3">
                                         <div className="col-md-12 mb-3">
                                             {
@@ -312,9 +388,41 @@ function TopicPage() {
                                                 )
                                                 : <></>
                                             }
-                                            <span className="text-danger">
+                                            {
+                                                (!hasManagerPermissions() && topic.status === Status.VOTING && !alreadyVoted())
+                                                ? (
+                                                    <>
+                                                        <button className="btn btn-success me-2" onClick={() => btnVoteClick(Options.YES)}>
+                                                            <i className="material-icons opacity-10 me-2" >thumb_up</i>
+                                                            Vote Yes
+                                                        </button>
+                                                        <button className="btn btn-warning me-2" onClick={() => btnVoteClick(Options.ABSTENTION)}>
+                                                            <i className="material-icons opacity-10 me-2" >thumb_up_down</i>
+                                                            Abstention
+                                                        </button>
+                                                        <button className="btn btn-danger me-2" onClick={() => btnVoteClick(Options.NO)}>
+                                                            <i className="material-icons opacity-10 me-2" >thumb_down</i>
+                                                            Vote No
+                                                        </button>
+                                                    </>
+                                                )
+                                                : <></>
+                                            }
+                                            {
+                                                (hasManagerPermissions() && topic.status === Status.APPROVED && topic.category === Category.SPENT)
+                                                ? (
+                                                    <>
+                                                        <button className="btn bg-gradient-dark me-2" onClick={btnTransferClick}>
+                                                            <i className="material-icons opacity-10 me-2" >payments</i>
+                                                            Transfer Payment
+                                                        </button>
+                                                    </>
+                                                )
+                                                : <></>
+                                            }
+                                            <p className="text-danger">
                                                 {message}
-                                            </span>
+                                            </p>
                                         </div>
                                     </div>
                         </div>

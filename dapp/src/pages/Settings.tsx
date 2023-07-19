@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
-import { getAddress, upgrade } from '../services/Web3Service';
+import { getAddress, getBalance, upgrade } from '../services/Web3Service';
 //import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Footer from '../components/Footer';
@@ -12,12 +12,17 @@ function Settings() {
     const [contract, setContract] = useState<string>("");
     const [message, setMessage] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [balance, setBalance] = useState<string>("");
     
     useEffect(() => {
         setIsLoading(true);
         getAddress()
         .then(contractAddress => {
             setContract(contractAddress);
+            return getBalance();
+        })
+        .then(balance => {
+            setBalance(balance);
             setIsLoading(false);
         })
         .catch(err => {
@@ -53,6 +58,16 @@ function Settings() {
                             {
                                 isLoading ? <Loader /> : <></>
                             }
+                            <div className="row ms-3">
+                                <div className="col-md-6 mb-3">
+                                    <div className="form-group">
+                                        <label htmlFor="balance">Condominium Balance (ETH):</label>
+                                        <div className="input-group input-group-outline">
+                                            <input type="text" className="form-control" id="balance" value={balance} disabled={true} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="row ms-3">
                                 <div className="col-md-6 mb-3">
                                     <div className="form-group">
