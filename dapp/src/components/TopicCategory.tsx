@@ -1,3 +1,5 @@
+import { ethers } from "ethers";
+
 type Props = {
     value: number | string;
     onChange: Function;
@@ -18,7 +20,7 @@ function TopicCategory(props: Props) {
     }
 
     return (
-        <select id="category" className="form-select px-3" value={props.value} onChange={onCategoryChange} disabled={props.disabled} >
+        <select id="category" className="form-select px-3" value={props.value ? ethers.toNumber(props.value) : ""} onChange={onCategoryChange} disabled={props.disabled} >
             <option value="">Select</option>
             <option value="0">Decision</option>
             <option value="1">Spent</option>

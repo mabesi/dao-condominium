@@ -1,5 +1,5 @@
 import { Status, hasManagerPermissions } from '../../services/Web3Service';
-import { keccak256, toUtf8Bytes } from 'ethers/lib/utils';
+import { keccak256, toUtf8Bytes } from 'ethers';
 
 
 type Props = {

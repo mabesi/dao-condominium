@@ -1,7 +1,5 @@
-import React from 'react';
 import { useEffect, useState } from 'react';
 import { Resident, getQuota, payQuota, getResident } from '../services/Web3Service';
-//import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Footer from '../components/Footer';
 import Loader from '../components/Loader';
@@ -9,26 +7,29 @@ import { ethers } from 'ethers';
 
 function Quota() {
 
-    //const navigate = useNavigate();
     const [resident, setResident] = useState<Resident>({} as Resident);
-    const [quota, setQuota] = useState<ethers.BigNumber>(ethers.BigNumber.from(0));
+    const [quota, setQuota] = useState<ethers.BigNumberish>(0n);
     const [message, setMessage] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    
+
     useEffect(() => {
+
         setIsLoading(true);
         const quotaPromise = getQuota();
         const residentPromise = getResident(localStorage.getItem("account") || "");
-        Promise.all([quotaPromise, residentPromise])
-            .then(results => {
-                setQuota(results[0]);
-                setResident(results[1]);
-                setIsLoading(false);
-            })
-            .catch(err => {
-                setMessage(err.message);
-                setIsLoading(false);
-            });
+
+        return () => {
+            Promise.all([quotaPromise, residentPromise])
+                .then(results => {
+                    setQuota(results[0]);
+                    setResident(results[1]);
+                    setIsLoading(false);
+                })
+                .catch(err => {
+                    setMessage(err.message);
+                    setIsLoading(false);
+                });
+        }
     }, []);
         
     function btnPayQuotaClick() {
@@ -45,23 +46,25 @@ function Quota() {
             });
     }
 
-    function getDate(timestamp: number) : string {
-        const dateMs = timestamp * 1000;
-        if (!dateMs) return "Never Payed";
+    function getDate(timestamp: ethers.BigNumberish) : string {
+        if (!timestamp) return "Never Payed";
+        const dateMs = ethers.toNumber(timestamp) * 1000;
         return new Date(dateMs).toDateString();
     }
 
     function getNextPaymentClass() : string {
         let className = "input-group input-group-outline ";
-        const dateMs = resident.nextPayment * 1000;
-        if (!dateMs || dateMs < Date.now())
+        if (!resident.nextPayment) return className + "is-invalid";
+        const dateMs = ethers.toNumber(resident.nextPayment) * 1000;
+        if (dateMs < Date.now())
             return className + "is-invalid";
         else
             return className + "is-valid";
     }
 
     function shouldPay() : boolean {
-        return (resident.nextPayment * 1000) <= Date.now();
+        if (!resident.nextPayment) return true;
+        return (ethers.toNumber(resident.nextPayment) * 1000) <= Date.now();
     }
 
     return (
@@ -89,21 +92,41 @@ function Quota() {
                                     <div className="form-group">
                                         <label htmlFor="quota">Monthly Quota (ETH):</label>
                                         <div className="input-group input-group-outline">
-                                            <input type="number" className="form-control" id="quota" value={ethers.utils.formatEther(quota)} disabled={true} />
+                                            <input type="number" className="form-control" id="quota" value={ethers.formatEther(quota)} disabled={true} />
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="row ms-3">
+
+
+                            {/* <div className="row ms-3">
                                 <div className="col-md-6 mb-3">
                                     <div className="form-group">
                                         <label htmlFor="residenceId">Residence (block + apt):</label>
                                         <div className="input-group input-group-outline">
-                                            <input type="number" className="form-control" id="residenceId" value={resident.residence} disabled={true} />
+                                            <input type="number" className="form-control" id="residenceId" value={ethers.toNumber(resident.residence)} disabled={true} />
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
+
+
+                            {
+                                !!resident.residence
+                                ? (
+                                    <div className="row ms-3">
+                                        <div className="col-md-6 mb-3">
+                                            <div className="form-group">
+                                                <label htmlFor="residenceId">Residence (block + apt):</label>
+                                                <div className="input-group input-group-outline">
+                                                    <input type="number" className="form-control" id="residenceId" value={ethers.toNumber(resident.residence)} disabled={true} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                                : <></>
+                            }
                             <div className="row ms-3">
                                 <div className="col-md-6 mb-3">
                                     <div className="form-group">

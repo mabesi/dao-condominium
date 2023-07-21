@@ -22,7 +22,7 @@ contract CondominiumAdapter {
         _;
     }
 
-    function getAddress() external view returns (address) {
+    function getImplementationAddress() external view returns (address) {
         return address(implementation);
     }
 

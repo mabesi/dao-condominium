@@ -1,14 +1,12 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
-import { getAddress, getBalance, upgrade } from '../services/Web3Service';
-//import { useNavigate } from 'react-router-dom';
+import { getImplementationAddress, getBalance, upgrade } from '../services/Web3Service';
 import Sidebar from '../components/Sidebar';
 import Footer from '../components/Footer';
 import Loader from '../components/Loader';
 
 function Settings() {
 
-    //const navigate = useNavigate();
     const [contract, setContract] = useState<string>("");
     const [message, setMessage] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -16,19 +14,19 @@ function Settings() {
     
     useEffect(() => {
         setIsLoading(true);
-        getAddress()
-        .then(contractAddress => {
-            setContract(contractAddress);
-            return getBalance();
-        })
-        .then(balance => {
-            setBalance(balance);
-            setIsLoading(false);
-        })
-        .catch(err => {
-            setMessage(err.message);
-            setIsLoading(false);
-        });
+        getImplementationAddress()
+            .then(address => {
+                setContract(address);
+                return getBalance(address);
+            })
+            .then(balance => {
+                setBalance(balance);
+                setIsLoading(false);
+            })
+            .catch(err => {
+                setMessage(err.message);
+                setIsLoading(false);
+            });
     }, []);
         
     function btnSaveClick() {

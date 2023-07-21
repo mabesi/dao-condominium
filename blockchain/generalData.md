@@ -1,15 +1,9 @@
-# Contratos gerados na BSC Testnet (01/07/23):
+# Contratos gerados na BSC Testnet (20/07/23):
 
-- Condominium Lib deployed to: 0x408B5Ab0DAa98aE24C10ad45AD601997ccb9b7c5
-- Condominium deployed to: 0xE4f02c9Ec935Fdc7EA6490613BDD76A970C5E070
-- Condominium Adapter deployed to: 0xf52bde8d987cFd40a1c17B5fcF588267921414dC
-    - Condominium Adapter upgraded to contract: 0xE4f02c9Ec935Fdc7EA6490613BDD76A970C5E070
-
-NOVO DEPLOY (Correção de resident duplicado)---------------------------
-Condominium deployed to: 0xcfd1FFd642D1cA3FD60A7EcA6b167b50369C106b
-
-NOVO DEPLOY (Correção de exclusão de resident)---------------------------
-Condominium deployed to: 0xb84e6e5c883ffb72bdcd9cc9652c59819f39df3e
+Condominium Lib deployed to: 0xd82cd289E5da7A3426F775c722ea3fC639B401C7
+Condominium deployed to: 0xfFbfE2E95Ded161E0b61C710642c613e3303AF3E
+Condominium Adapter deployed to: 0xeb2A957219F561Bac4D898EA448dF397628789FB
+Condominium Adapter upgraded to contract: 0xfFbfE2E95Ded161E0b61C710642c613e3303AF3E
 
 # My test wallets
 

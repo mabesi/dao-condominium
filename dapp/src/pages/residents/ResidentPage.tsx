@@ -35,6 +35,7 @@ function ResidentPage() {
                 .then(results => {
                     setResident(results[0]);
                     setApiResident(results[1]);
+                    console.log(results[0]);
                     setIsLoading(false);
                 })
                 .catch(err => {
@@ -61,7 +62,7 @@ function ResidentPage() {
 
             if (!wallet){
 
-                const promiseBlockchain = addResident(resident.wallet, resident.residence);
+                const promiseBlockchain = addResident(resident.wallet, ethers.toNumber(resident.residence));
                 // deveria ser apenas se a inclusão na blockchain ocorrer com sucesso
                 const promiseBackend = addApiResident({...apiResident, profile: Profile.RESIDENT, wallet: resident.wallet});
 
@@ -88,14 +89,16 @@ function ResidentPage() {
     }
 
     function getNextPayment() {
-        const dateMs = resident.nextPayment * 1000;
+        if (!resident.nextPayment) return "Never Payed";
+        const dateMs = ethers.toNumber(resident.nextPayment) * 1000;
         const text = !dateMs ? "Never Payed" : new Date(dateMs).toDateString();
         return text;
     }
 
     function getNextPaymentClass() {
         let className = "input-group input-group-outline ";
-        const dateMs = resident.nextPayment * 1000;
+        if (!resident.nextPayment) return className + "is-invalid";
+        const dateMs = ethers.toNumber(resident.nextPayment) * 1000;
         if (!dateMs || dateMs < Date.now())
             return className + "is-invalid";
         else
@@ -137,7 +140,7 @@ function ResidentPage() {
                                     <div className="form-group">
                                         <label htmlFor="residence">Residence Id (block + apartment):</label>
                                         <div className="input-group input-group-outline">
-                                            <input type="number" className="form-control" id="residence" value={resident.residence || ""} placeholder="1101" onChange={onResidentChange}  disabled={!!wallet} />
+                                            <input type="number" className="form-control" id="residence" value={ethers.toNumber(resident.residence || 0)} placeholder="1100" onChange={onResidentChange}  disabled={!!wallet} />
                                         </div>
                                     </div>
                                 </div>

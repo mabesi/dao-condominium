@@ -78,20 +78,11 @@ function TopicPage() {
         }
     }
 
-    function getDate(timestamp: number) {
-        const dateMs = timestamp * 1000;
+    function getDate(timestamp: ethers.BigNumberish) {
+        const dateMs = ethers.toNumber(timestamp) * 1000;
         if (!dateMs) return "";
         return new Date(dateMs).toDateString();
     }
-
-    // function getNextPaymentClass() {
-    //     let className = "input-group input-group-outline ";
-    //     const dateMs = Topic.nextPayment * 1000;
-    //     if (!dateMs || dateMs < Date.now())
-    //         return className + "is-invalid";
-    //     else
-    //         return className + "is-valid";
-    // }
 
     function getStatus() : string {
         switch (topic.status) {
@@ -187,7 +178,7 @@ function TopicPage() {
 
         if (title && topic && topic.status === Status.APPROVED ) {
             setMessage("Connecting to MetaMask. Wait...");
-            if (window.confirm(`Are you sure to transfer ${ethers.utils.formatEther(topic.amount)} ETH for ${topic.responsible}?`)) {
+            if (window.confirm(`Are you sure to transfer ${ethers.formatEther(topic.amount)} ETH for ${topic.responsible}?`)) {
                 transfer(title, topic.amount)
                     .then(tx => navigate("/topics?tx=" + tx.hash))
                     .catch(err => setMessage(err.message));
@@ -351,7 +342,7 @@ function TopicPage() {
                                             <div className="form-group">
                                                 <label htmlFor="voting">Voting:</label>
                                                 <div className="input-group input-group-outline">
-                                                    <input type="text" className="form-control" id="voting" value={`${votes.length} votes (${votes.filter(v => v.option === Options.YES).length} YES)`} disabled={true} />
+                                                    <input type="text" className="form-control" id="voting" value={`${votes.length} votes (${votes.filter(v => ethers.toNumber(v.option) === Options.YES).length} YES)`} disabled={true} />
                                                 </div>
                                             </div>
                                         </div>
@@ -434,7 +425,7 @@ function TopicPage() {
                 </div>
                 {
                     title
-                    ? <TopicFiles title={title} status={topic.status} />
+                    ? <TopicFiles title={title} status={topic.status || Status.IDLE} />
                     : <></>
                 }
                 <Footer />

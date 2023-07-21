@@ -1,4 +1,4 @@
-import { keccak256, toUtf8Bytes } from 'ethers/lib/utils';
+import { keccak256, toUtf8Bytes } from 'ethers';
 import axios from './AxiosConfig';
 import { Profile, hasManagerPermissions, hasCounselorPermissions } from './Web3Service';
 
@@ -12,8 +12,8 @@ export type ApiResident = {
     email?: string;
 }
 
-export async function doApiLogin(wallet: string, secret: string, timestamp: number) {
-    const response = await axios.post(`${API_URL}/login`,{ wallet, secret, timestamp });
+export async function doApiLogin(wallet: string, timestamp: number, secret: string, managerSecret?: string) {
+    const response = await axios.post(`${API_URL}/login`,{ wallet, timestamp, secret, managerSecret });
     return response.data.token;
 }
 

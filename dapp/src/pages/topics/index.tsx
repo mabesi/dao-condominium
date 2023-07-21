@@ -17,7 +17,7 @@ function Topics() {
     const [message, setMessage] = useState<string>("");
     const [error, setError] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [count, setCount] = useState<ethers.BigNumber>(ethers.BigNumber.from(0));
+    const [count, setCount] = useState<ethers.BigNumberish>(0n);
 
     function useQuery() {
         return new URLSearchParams(useLocation().search);

@@ -1,6 +1,3 @@
-//import React from 'react';
-//import { useEffect, useState } from 'react';
-//import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { Resident, hasManagerPermissions } from '../../services/Web3Service';
 
@@ -11,22 +8,17 @@ type Props = {
 
 function ResidentRow(props: Props) {
 
-    //const navigate = useNavigate();
-    //const [message, setMessage] = useState<string>("");
-    //const [isLoading, setIsLoading] = useState<boolean>(false);
-
-    //useEffect(() => {
-    //
-    //},[]);
-
     /**
      * props:
      * - data
      * - onDelete
      */
     function getNextPayment() {
+        
+        let dateMs = 0;
+        if (props.data.nextPayment)
+            dateMs = ethers.toNumber(props.data.nextPayment) * 1000;
 
-        const dateMs = props.data.nextPayment * 1000;
         const text = !dateMs ? "Never Payed" : new Date(dateMs).toDateString();
         let color = "text-success";
 
@@ -55,7 +47,7 @@ function ResidentRow(props: Props) {
                 </div>
             </td>
             <td>
-                <p className="text-xs font-weight-bold mb-0 px-3">{ethers.BigNumber.from(props.data.residence).toNumber()}</p>
+                <p className="text-xs font-weight-bold mb-0 px-3">{ethers.toBigInt(props.data.residence).toString()}</p>
             </td>
             <td>
                 <p className="text-xs font-weight-bold mb-0 px-3">{JSON.stringify(props.data.isCounselor)}</p>

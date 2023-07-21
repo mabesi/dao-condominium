@@ -1,6 +1,3 @@
-//import React from 'react';
-//import { useEffect, useState } from 'react';
-//import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { Category, Status, Topic, hasManagerPermissions } from '../../services/Web3Service';
 
@@ -11,14 +8,6 @@ type Props = {
 
 function TopicRow(props: Props) {
 
-    //const navigate = useNavigate();
-    //const [message, setMessage] = useState<string>("");
-    //const [isLoading, setIsLoading] = useState<boolean>(false);
-
-    //useEffect(() => {
-    //
-    //},[]);
-
     /**
      * props:
      * - data
@@ -26,7 +15,7 @@ function TopicRow(props: Props) {
      */
     function getDate() {
         if (!props.data.createdDate) return "";
-        const dateMs = props.data.createdDate * 1000;
+        const dateMs = ethers.toNumber(props.data.createdDate) * 1000;
         return (
             <p className={"text-xs mb-0 ms-3 "} >
                 {new Date(dateMs).toDateString()}
@@ -41,7 +30,7 @@ function TopicRow(props: Props) {
 
     function getCategory() {
         let text = "";
-        switch (props.data.category) {
+        switch (ethers.toNumber(props.data.category)) {
             case Category.DECISION: text = "Decision"; break;
             case Category.SPENT: text = "Spent"; break;
             case Category.CHANGE_QUOTA: text = "Change Quota"; break;
@@ -110,11 +99,11 @@ function TopicRow(props: Props) {
                     <i className='material-icons text-sm' >visibility</i>
                 </a>
                 {
-                    hasManagerPermissions() && props.data.status === Status.IDLE
+                    hasManagerPermissions() && ethers.toNumber(props.data.status || 0n) === Status.IDLE
                     ? (
                         <>
                             <a href="#" className="btn btn-danger btn-sm me-1" onClick={btnDeleteClick} >
-                                <i className='material-icons text-sm' >delete</i>
+                                <i className='material-icons text-sm' >delete</i> 
                             </a>
                         </>
                     )

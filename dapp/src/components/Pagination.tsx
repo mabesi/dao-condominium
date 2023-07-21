@@ -2,13 +2,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { ethers } from "ethers";
 
 type Props = {
-    count: ethers.BigNumber;
+    count: ethers.BigNumberish;
     pageSize: number;
 }
 
 function Pagination(props: Props) {
 
-    const pagesQty = Math.ceil(props.count.toNumber()/props.pageSize)
+    const pagesQty = Math.ceil(ethers.toNumber(props.count)/props.pageSize)
     const pages = [];
     
     function useQuery() {
@@ -27,9 +27,9 @@ function Pagination(props: Props) {
     }
 
     function getBottom() {
-        if (props.count.toNumber() > 0)
+        if (ethers.toNumber(props.count) > 0)
             return (<div className="fw-normal small mt-4 mt-lg-0 me-2">
-                        <b>{props.count.toNumber()}</b> result(s)
+                        <b>{ethers.toNumber(props.count)}</b> result(s)
                     </div>);
         else
             return (<div className="fw-normal small mt-4 mt-lg-0 me-2">

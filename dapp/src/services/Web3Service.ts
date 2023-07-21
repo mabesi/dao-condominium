@@ -42,35 +42,35 @@ export type Resident = {
     residence: number;
     isCounselor: boolean;
     isManager: boolean;
-    nextPayment: number;
+    nextPayment: ethers.BigNumberish;
 }
 
 export type ResidentPage = {
     residents: Resident[];
-    total: ethers.BigNumber;
+    total: ethers.BigNumberish;
 }
 
 export type Topic = {
     title: string;
     description: string;
     category: Category;
-    amount: ethers.BigNumber;
+    amount: ethers.BigNumberish;
     responsible: string;
     status?: Status;
-    createdDate?: number;
-    startDate?: number;
-    endDate?: number;
+    createdDate?: ethers.BigNumberish;
+    startDate?: ethers.BigNumberish;
+    endDate?: ethers.BigNumberish;
 }
 
 export type TopicPage = {
     topics: Topic[];
-    total: ethers.BigNumber;
+    total: ethers.BigNumberish;
 }
 
 export type Vote = {
     resident: string;
     residence: number;
-    timestamp: number;
+    timestamp: ethers.BigNumberish;
     option: Options;
 }
 
@@ -81,21 +81,24 @@ function getProfile() : Profile {
     return parseInt(profile);
 }
 
-function getProvider(): ethers.providers.Web3Provider {
-    if (!window.ethereum) throw new Error("No MetaMask found");
-    return new ethers.providers.Web3Provider(window.ethereum);
+function getProvider(): ethers.BrowserProvider {
+    if (!window.ethereum)
+        throw new Error("No MetaMask found");
+    return new ethers.BrowserProvider(window.ethereum);
 }
 
-function getContract(provider?: ethers.providers.Web3Provider) : ethers.Contract {
-    if (!provider) provider = getProvider();
-    return new ethers.Contract(ADAPTER_ADDRESS, ABI, provider);
+function getContract(provider?: ethers.BrowserProvider) : ethers.Contract {
+    if (!provider)
+        provider = getProvider();
+    return new ethers.Contract(ADAPTER_ADDRESS, ABI as ethers.InterfaceAbi, provider);
 }
 
-function getContractSigner(provider?: ethers.providers.Web3Provider) : ethers.Contract {
-    if (!provider) provider = getProvider();
-    const signer = provider.getSigner(localStorage.getItem("account") || undefined);
-    const contract =  new ethers.Contract(ADAPTER_ADDRESS, ABI, provider);
-    return contract.connect(signer);
+async function getContractSigner(provider?: ethers.BrowserProvider) : Promise<ethers.Contract> {
+    if (!provider)
+        provider = getProvider();
+    const signer = await provider.getSigner(localStorage.getItem("account") || undefined);
+    const contract =  new ethers.Contract(ADAPTER_ADDRESS, ABI as ethers.InterfaceAbi, provider);
+    return contract.connect(signer) as ethers.Contract;
 }
 
 export function hasResidentPermissions() : boolean {
@@ -122,7 +125,7 @@ export async function doLogin() : Promise<LoginResult> {
 
     let isManager = resident.isManager;
 
-    if (!isManager && resident.residence > 0) {
+    if (!isManager && ethers.toNumber(resident.residence) > 0) {
         if (resident.isCounselor)
             localStorage.setItem("profile", `${Profile.COUNSELOR}`);
         else
@@ -140,13 +143,20 @@ export async function doLogin() : Promise<LoginResult> {
     localStorage.setItem("account", accounts[0]);
 
     // Assinar mensagem para autenticação no backend
-    const signer = provider.getSigner();
+    const signer = await provider.getSigner();
     const timestamp = Date.now();
     const message = `Authenticating to Condominium: Timestamp: ${timestamp}`;
     const secret = await signer.signMessage(message);
 
-    // Enviar secret para backend e receber o token
-    const token = await doApiLogin(accounts[0], secret, timestamp);
+    let managerSecret = undefined;
+
+    if (isManager) {
+        const managerMessage = `Authenticating the manager to Condominium. Timestamp: ${timestamp}`;
+        managerSecret = await signer.signMessage(managerMessage);
+    }
+    
+    const token = await doApiLogin(accounts[0], timestamp, secret, managerSecret );
+    
     // Salvar o token no localStorage
     localStorage.setItem("token", token);
 
@@ -164,26 +174,20 @@ export function doLogout() {
     localStorage.removeItem("token");
 }
 
-export async function getAddress() : Promise<string> {
+export async function getImplementationAddress() : Promise<string> {
     const cc = getContract();
-    const contractAddress = await cc.getAddress() as string;
-    return contractAddress;
+    return await cc.getImplementationAddress();
 }
 
-export async function getResident(wallet: string) : Promise<Resident> {
-    const cc = getContract();
-    return cc.getResident(wallet) as Resident;
-}
+// export async function getResident(wallet: string) : Promise<Resident> {
+//     const cc = getContract();
+//     return await cc.getResident(wallet) as Promise<Resident>;
+// }
 
 export async function getResidents(page: number = 1, pageSize: number = 10) : Promise<ResidentPage> {
     const cc = getContract();
     const result = await cc.getResidents(page, pageSize) as ResidentPage;
-    const residents = result.residents.filter(r => r.residence).sort((a,b) => {
-        if (a.residence > b.residence)
-            return 1;
-        else
-            return -1
-    });
+    const residents = [...result.residents].filter(r => r.residence).sort((a,b) => ethers.toNumber(a.residence) - ethers.toNumber(b.residence));
     return {
         residents,
         total: result.total
@@ -192,19 +196,19 @@ export async function getResidents(page: number = 1, pageSize: number = 10) : Pr
 
 export async function addResident(wallet: string, residenceId: number) : Promise<ethers.Transaction> {
     if (getProfile() === Profile.RESIDENT) throw new Error(`You do not have permission.`);
-    const cc = getContractSigner();
-    return (await cc.addResident(wallet, residenceId)) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return (await cc.addResident(wallet, residenceId)) as Promise<ethers.Transaction>;
 }
 
 export async function removeResident(wallet: string) : Promise<ethers.Transaction> {
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
-    const cc = getContractSigner();
-    return (await cc.removeResident(wallet)) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return (await cc.removeResident(wallet)) as Promise<ethers.Transaction>;
 }
 
 export async function getTopic(title: string) : Promise<Topic> {
     const cc = getContract();
-    return cc.getTopic(title) as Topic;
+    return cc.getTopic(title) as Promise<Topic>;
 }
 
 export async function getTopics(page: number = 1, pageSize: number = 10) : Promise<TopicPage> {
@@ -218,79 +222,84 @@ export async function getTopics(page: number = 1, pageSize: number = 10) : Promi
 }
 
 export async function addTopic(topic: Topic) : Promise<ethers.Transaction> {
-    topic.amount = ethers.BigNumber.from(topic.amount || 0);
-    const cc = getContractSigner();
-    return (await cc.addTopic(topic.title, topic.description, topic.category, topic.amount, topic.responsible)) as ethers.Transaction;
+    topic.amount = ethers.toBigInt(topic.amount || 0);
+    const cc = await getContractSigner();
+    return (await cc.addTopic(topic.title, topic.description, topic.category, topic.amount, topic.responsible)) as Promise<ethers.Transaction>;
 }
 
-export async function editTopic(topicToEdit: string, description: string, amount: ethers.BigNumber, responsible: string) : Promise<ethers.Transaction> {
+export async function editTopic(topicToEdit: string, description: string, amount: ethers.BigNumberish, responsible: string) : Promise<ethers.Transaction> {
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
-    amount = ethers.BigNumber.from(amount || 0);
-    const cc = getContractSigner();
-    return (await cc.editTopic(topicToEdit, description, amount, responsible)) as ethers.Transaction;
+    amount = ethers.toBigInt(amount || 0);
+    const cc = await getContractSigner();
+    return (await cc.editTopic(topicToEdit, description, amount, responsible)) as Promise<ethers.Transaction>;
 }
 
 export async function removeTopic(title: string) : Promise<ethers.Transaction> {
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
-    const cc = getContractSigner();
-    return (await cc.removeTopic(title)) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return (await cc.removeTopic(title)) as Promise<ethers.Transaction>;
 }
 
 export async function upgrade(contractAddress: string) : Promise<ethers.Transaction> {
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
-    const cc = getContractSigner();
-    return (await cc.upgrade(contractAddress)) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return (await cc.upgrade(contractAddress)) as Promise<ethers.Transaction>;
 }
     
 export async function setCounselor(wallet: string, isEntering: boolean) : Promise<ethers.Transaction> {
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
-    const cc = getContractSigner();
-    return (await cc.setCounselor(wallet, isEntering)) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return (await cc.setCounselor(wallet, isEntering)) as Promise<ethers.Transaction>;
 }
 
 export async function openVoting(topicTitle: string) : Promise<ethers.Transaction> {
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
-    const cc = getContractSigner();
-    return (await cc.openVoting(topicTitle)) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return (await cc.openVoting(topicTitle)) as Promise<ethers.Transaction>;
 }
 
 export async function closeVoting(topicTitle: string) : Promise<ethers.Transaction> {
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
-    const cc = getContractSigner();
-    return (await cc.closeVoting(topicTitle)) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return (await cc.closeVoting(topicTitle)) as Promise<ethers.Transaction>;
 }
 
 export async function getVotes(topicTitle: string) : Promise<Vote[]> {
     const cc = getContract();
-    return cc.getVotes(topicTitle) as Vote[];
+    return cc.getVotes(topicTitle) as Promise<Vote[]>;
 }
 
 export async function vote(topicTitle: string, option: Options) : Promise<ethers.Transaction> {
-    const cc = getContractSigner();
-    return (await cc.vote(topicTitle, option)) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return (await cc.vote(topicTitle, option)) as Promise<ethers.Transaction>;
 }
 
-export async function getQuota() : Promise<ethers.BigNumber> {
+export async function getQuota() : Promise<ethers.BigNumberish> {
     const cc = getContract();
-    return cc.getQuota() as ethers.BigNumber;
+    return await cc.getQuota() as ethers.BigNumberish
 }
 
-export async function payQuota(residenceId: number, value: ethers.BigNumber) : Promise<ethers.Transaction> {
+export async function getResident(wallet: string) : Promise<Resident> {
+    const cc = getContract();
+    return await cc.getResident(wallet) as Promise<Resident>;
+}
+
+export async function payQuota(residenceId: ethers.BigNumberish, value: ethers.BigNumberish) : Promise<ethers.Transaction> {
     // Verificação de perfil com problema: e se o counselor ou o manager forem resident?
     if (getProfile() !== Profile.RESIDENT) throw new Error(`You do not have permission.`);
-    const cc = getContractSigner();
-    return (await cc.payQuota(residenceId, { value })) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return (await cc.payQuota(residenceId, { value })) as Promise<ethers.Transaction>;
 }
 
-export async function transfer(topicTitle: string, amount: ethers.BigNumber) : Promise<ethers.Transaction> {
+export async function transfer(topicTitle: string, amount: ethers.BigNumberish) : Promise<ethers.Transaction> {
     if (getProfile() !== Profile.MANAGER) throw new Error(`You do not have permission.`);
-    const cc = getContractSigner();
-    return (await cc.transfer(topicTitle, amount)) as ethers.Transaction;
+    const cc = await getContractSigner();
+    return await cc.transfer(topicTitle, amount) as Promise<ethers.Transaction>;
 }
 
 export async function getBalance(address?: string) : Promise<string> {
-    if (!address) address = await getAddress();
+    if (!address) address = await getImplementationAddress();
     const provider = getProvider();
     const balance = await provider.getBalance(address);
-    return ethers.utils.formatEther(balance);
+    return ethers.formatEther(balance);
 }

@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 //import { useLocation, useNavigate } from 'react-router-dom';
 //import x from './x';
 
-import { Status } from "../../services/Web3Service";
+import { Status, hasCounselorPermissions, hasResidentPermissions } from "../../services/Web3Service";
 import Loader from "../../components/Loader";
 import TopicFileRow from './TopicFileRow';
 import { uploadTopicFile, getTopicFiles, deleteTopicFiles } from '../../services/ApiService';
+import { ethers } from 'ethers';
 
 type Props = {
     title: string;
@@ -125,6 +126,7 @@ function TopicFiles(props: Props) {
                         <hr />
                     </div>
                     {
+                        //hasCounselorPermissions() && props.status === Status.IDLE
                         props.status === Status.IDLE
                         ? (
                             <div className="row ms-3 mb-3">
