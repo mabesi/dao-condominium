@@ -1,6 +1,6 @@
 # DAO CONDOMINIUM
 
-**Language:** [English](README.md) | [Português](README-PT.md)
+**[🇧🇷 Leia em Português](README-PT.md)**
 
 ![DAO Condominium Banner](./banner.png)
 
