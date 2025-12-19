@@ -1,5 +1,7 @@
 # DAO CONDOMINIUM
 
+**Idioma:** [English](README.md) | [Português](README-PT.md)
+
 ![DAO Condominium Banner](./banner.png)
 
 > **⚠️ REPOSITÓRIO ARQUIVADO**  
